@@ -1,0 +1,22 @@
+extends base
+
+block title
+  title Uploader Login
+
+block body
+  h1(style="text-align: center; padding: 20px 0;") Authorization
+  .container
+    .row
+      .col-sm
+      .col-sm
+        form(method='POST' action='/login')
+          .form-group
+            label(for="username") Username
+            input#usename.form-control(type='text' name='username' aria-describedby="usename" placeholder='Username')
+
+          .form-group
+            label(for="password") Password
+            input#password.form-control(type='password' name='password' aria-describedby="password" placeholder='Password')
+
+          button.btn.btn-primary(type="submit") Sign In
+      .col-sm

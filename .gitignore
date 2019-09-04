@@ -1,0 +1,6 @@
+/node_modules
+/lib
+/uploads
+.env
+database.db
+docker-compose.yml
