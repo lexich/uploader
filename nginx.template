@@ -1,0 +1,31 @@
+server {
+  listen ${NGINX_PORT} default_server;
+  gzip on;
+  gzip_types text/plain application/xml;
+  gzip_min_length 1000;
+  gzip_proxied no-cache no-store private expired auth;
+  gzip_static on;
+
+  root /usr/share/nginx/html;
+  index index.html;
+  error_page 500 502 503 504 /50x.html;
+  error_page 400 401 402 403 404 /40x.html;
+
+  client_max_body_size 500M;
+
+  location = /50x.html {
+    root /var/www/errors;
+  }
+  location = /40x.html {
+    root /var/www/errors;
+  }
+
+  location /media {
+    alias /media;
+    autoindex off;
+  }
+
+  location / {
+    proxy_pass http://uploader:3000/;
+  }
+}
