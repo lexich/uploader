@@ -1,5 +1,20 @@
 server {
+    listen 80;
+    listen [::]:80;
+    server_name ${NGINX_NAME} www.${NGINX_NAME}
+    gzip on;
+    gzip_types text/plain application/xml;
+    gzip_min_length 1000;
+    gzip_proxied no-cache no-store private expired auth;
+    gzip_static on;
+    root /usr/share/nginx/html;
+    index index.html;
+}
+
+server {
   listen ${NGINX_PORT} default_server;
+  listen [::]:${NGINX_PORT};
+  server_name ${NGINX_SERVICE_NAME}.${NGINX_NAME} www.${NGINX_SERVICE_NAME}.${NGINX_NAME}
   gzip on;
   gzip_types text/plain application/xml;
   gzip_min_length 1000;
