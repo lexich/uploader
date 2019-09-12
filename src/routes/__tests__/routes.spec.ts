@@ -72,8 +72,20 @@ test('POST /login with correct password and access to index page', async () => {
   const { res, cookie } = await login(agent);
   expect(res.redirect).toBeTruthy();
   expect(res.header.location).toBe('/');
-  const resIndex = await agent
-    .get('/')
-    .set('Cookie', (res as any).headers['set-cookie']);
+  const resIndex = await agent.get('/').set('Cookie', cookie);
   expect(resIndex.status).toBe(200);
+});
+
+test('POST /login with incorrect password', async () => {
+  const agent = getAgent();
+  const { res } = await login(agent, {
+    username: 'test1',
+    password: 'test1'
+  });
+  expect(res.status).toBe(401);
+  const $ = cheerio.load(res.text);
+  const username = $('form input[name=username]');
+  expect(username.val()).toBe('test1');
+  const message = $('form .text-danger');
+  expect(message.text()).toBe(`User test1 wasn't found`);
 });

@@ -1,4 +1,5 @@
 import { NextFunction, Response, Request } from 'express-serve-static-core';
+import { InvalidLoginError } from './errors';
 
 export function logErrors(
   err: Error,
@@ -6,8 +7,23 @@ export function logErrors(
   _res: Response,
   next: NextFunction
 ) {
-  console.error(err.stack);
+  if (!(err instanceof InvalidLoginError)) {
+    console.error(err.stack);
+  }
   next(err);
+}
+
+export function getCode(err: Error): number {
+  if (err instanceof InvalidLoginError) {
+    return err.status;
+  }
+  return 500;
+}
+export function getErrorMessage(err: Error): string {
+  if (err instanceof InvalidLoginError) {
+    return err.message;
+  }
+  return 'Something failed';
 }
 
 export function clientErrorHandler(
@@ -17,7 +33,7 @@ export function clientErrorHandler(
   next: NextFunction
 ) {
   if (req.xhr) {
-    res.status(500).send({ error: 'Something failed!' });
+    res.status(getCode(err)).send({ error: getErrorMessage(err) });
   } else {
     next(err);
   }
@@ -25,10 +41,15 @@ export function clientErrorHandler(
 
 export function errorHandler(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ) {
-  res.status(500);
-  res.render('error', { error: err });
+  if (err instanceof InvalidLoginError) {
+    return res.status(getCode(err)).render('login', {
+      username: req.param('username'),
+      error: getErrorMessage(err)
+    });
+  }
+  res.status(getCode(err)).render('error', { error: getErrorMessage(err) });
 }

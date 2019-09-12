@@ -4,6 +4,7 @@ import * as path from 'path';
 import args from './args';
 import * as fs from 'fs';
 import { resolve } from 'bluebird';
+import { InvalidLoginError } from './errors';
 
 export interface User {
   username: string;
@@ -11,7 +12,7 @@ export interface User {
 
 export function getUser(req: Express.Request): User {
   if (!req.user) {
-    throw new Error('Not authorize access');
+    throw new InvalidLoginError('Not authorize access');
   }
   return req.user as User;
 }
