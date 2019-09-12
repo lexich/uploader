@@ -31,12 +31,6 @@ test('GET / page without auth shoud redirect to login page', async () => {
   expect(res.header.location).toBe('/login');
 });
 
-test('GET /files page without auth shoud redirect to login page', async () => {
-  const res = await getAgent().get('/files');
-  expect(res.redirect).toBeTruthy();
-  expect(res.header.location).toBe('/login');
-});
-
 test('GET /login page without auth should render template', async () => {
   const res = await getAgent().get('/login');
   expect(res.status).toBe(200);
@@ -88,4 +82,22 @@ test('POST /login with incorrect password', async () => {
   expect(username.val()).toBe('test1');
   const message = $('form .text-danger');
   expect(message.text()).toBe(`User test1 wasn't found`);
+});
+
+test('GET /files without auth', async () => {
+  const res = await getAgent()
+    .get('/files')
+    .set('X-Requested-With', 'XMLHttpRequest');
+  expect(res.status).toBe(401);
+});
+
+test('GET /files with auth', async () => {
+  const agent = getAgent();
+  const { cookie } = await login(agent);
+  const res = await agent
+    .get('/files')
+    .set('Cookie', cookie)
+    .set('X-Requested-With', 'XMLHttpRequest');
+  expect(res.status).toBe(200);
+  expect(res.body).toEqual([]);
 });

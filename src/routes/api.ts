@@ -14,10 +14,10 @@ export default (router = Router()) => {
       .catch(next);
   });
 
-  router.get('/files', ensureLoggedIn(), (req, res, next) => {
+  router.get('/files', (req, res, next) => {
     getFileList(req)
       .then(files => {
-        res.json(files);
+        res.json(files).end();
       })
       .catch(next);
   });
