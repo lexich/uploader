@@ -4,3 +4,4 @@
 .env
 database.db
 docker-compose.yml
+yarn-error.log

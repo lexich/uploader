@@ -15,10 +15,18 @@ if (!process.env.secret) {
   process.exit(1);
 }
 
-export default {
+const ARGS = {
     username: process.env.username!,
     password: process.env.password!,
     secret: process.env.secret!,
     upload: process.env.upload || 'uploads',
     PORT: +(process.env.PORT || 3000)
 };
+
+export function mock(fn: (args: typeof ARGS) => void) {
+  const oldArgs = { ... ARGS };
+  fn(ARGS);
+  return () => Object.assign(ARGS, oldArgs);
+}
+
+export default ARGS;
