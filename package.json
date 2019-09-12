@@ -8,7 +8,7 @@
     "compile": "tsc",
     "watch": "node_modules/.bin/tsc --watch",
     "start-watch": "pm2 start lib/index.js --watch ",
-    "start": "node lib/index.js",
+    "start": "npm run compile && node lib/index.js",
     "debug": "node --inspect lib/index.js"
   },
   "author": "",
