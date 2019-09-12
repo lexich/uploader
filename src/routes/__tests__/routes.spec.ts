@@ -150,3 +150,24 @@ describe('route "/"', () => {
     );
   });
 });
+
+describe('route "/logout"', () => {
+  test('GET simple', async () => {
+    const res = await getAgent().get('/logout');
+    expect(res.redirect).toBeTruthy();
+    expect(res.header.location).toBe('/login');
+  });
+
+  test('login -> index -> logout -> [index -> login]', async () => {
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const resIndexAuth = await agent.get('/').set('Cookie', cookie);
+    expect(resIndexAuth.status).toBe(200);
+    const resLogout = await agent.get('/logout').set('Cookie', cookie);
+    expect(resLogout.status).toBe(302);
+    expect(resLogout.header.location).toBe('/login');
+    const resIndexNotAuth = await agent.get('/').set('Cookie', cookie);
+    expect(resIndexNotAuth.status).toBe(302);
+    expect(resIndexNotAuth.header.location).toBe('/login');
+  })
+});
