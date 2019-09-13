@@ -47,7 +47,7 @@ export function errorHandler(
 ) {
   if (err instanceof InvalidLoginError) {
     return res.status(getCode(err)).render('login', {
-      username: req.param('username'),
+      username: req.body.username,
       error: getErrorMessage(err)
     });
   }

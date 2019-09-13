@@ -1,11 +1,14 @@
 import request from 'supertest';
 import express from 'express';
-import { mock } from '../../args';
+import ARGS, { mock } from '../../args';
 import apiRoutes from '../api';
 import authRoutes from '../auth';
 import cheerio from 'cheerio';
 import * as path from 'path';
+import * as fs from 'fs';
 import { setupMiddleware, setupErrorHandlers } from '../../app';
+import rimraf from 'rimraf';
+
 function getAgent() {
   const app = express();
   setupMiddleware(app);
@@ -39,6 +42,17 @@ async function login(
     .set('Content-Type', 'application/x-www-form-urlencoded');
   const cookie = (res as any).headers['set-cookie'];
   return { cookie, res };
+}
+
+function isFileExist(filepath: string) {
+  return new Promise<boolean>(resolve => {
+    fs.stat(filepath, (err, stat) => {
+      if (err) {
+        return resolve(false);
+      }
+      resolve(stat.isFile());
+    });
+  });
 }
 
 describe('route "/login"', () => {
@@ -169,5 +183,68 @@ describe('route "/logout"', () => {
     const resIndexNotAuth = await agent.get('/').set('Cookie', cookie);
     expect(resIndexNotAuth.status).toBe(302);
     expect(resIndexNotAuth.header.location).toBe('/login');
-  })
+  });
+});
+
+describe('route "/file-upload"', () => {
+  let unmock: any;
+  const UPLOADDIR = path.join(__dirname, 'fixtures', 'tmp');
+  const FILENAME = '1.txt';
+  beforeEach(() => {
+    unmock = mock(args => {
+      args.upload = UPLOADDIR;
+    });
+  });
+
+  afterEach(done => {
+    const cleanDir = path.join(UPLOADDIR, ARGS.username);
+    unmock();
+    rimraf(cleanDir, () => done());
+  });
+
+  test('POST upload file with auth', async () => {
+    const sourceFile = path.join(
+      __dirname,
+      'fixtures',
+      ARGS.username,
+      FILENAME
+    );
+    const uploadedFile = path.join(UPLOADDIR, ARGS.username, FILENAME);
+
+    const isSourceFileExist = await isFileExist(sourceFile);
+    expect(isSourceFileExist).toBeTruthy();
+    const isUploadedFileExist = await isFileExist(uploadedFile);
+    expect(isUploadedFileExist).toBeFalsy();
+
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const res = await agent
+      .post('/file-upload')
+      .set('Cookie', cookie)
+      .attach('file', sourceFile);
+    expect(res.body).toEqual({
+      filename: FILENAME,
+      mimetype: 'text/plain',
+      size: 8,
+      url: `/media/test/${FILENAME}`
+    });
+    const isUploadedFileExist2 = await isFileExist(uploadedFile);
+    expect(isUploadedFileExist2).toBeTruthy();
+  });
+
+  test('POST upload file without auth', async () => {
+    const sourceFile = path.join(
+      __dirname,
+      'fixtures',
+      ARGS.username,
+      FILENAME
+    );
+    const uploadedFile = path.join(UPLOADDIR, ARGS.username, FILENAME);
+    const res = await getAgent()
+      .post('/file-upload')
+      .attach('file', sourceFile);
+    expect(res.status).toBe(302);
+    const isExistUploadFile = await isFileExist(uploadedFile);
+    expect(isExistUploadFile).toBeFalsy();
+  });
 });
