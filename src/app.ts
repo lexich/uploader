@@ -6,7 +6,7 @@ import bodyParser from 'body-parser';
 import { passport } from './passport';
 import args from './args';
 import * as handlers from './handlers';
-
+import { Storage } from './storage';
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
 
@@ -47,8 +47,9 @@ export function setupErrorHandlers(app: express.Express) {
 }
 
 export function initApp(app = express()) {
+  const storageInterface = new Storage();
   setupMiddleware(app);
-  app.use(apiRoutes());
+  app.use(apiRoutes(storageInterface));
   app.use(authRoutes());
   app.use('/media', express.static(args.upload));
   setupErrorHandlers(app);

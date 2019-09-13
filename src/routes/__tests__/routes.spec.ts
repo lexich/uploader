@@ -6,13 +6,16 @@ import authRoutes from '../auth';
 import cheerio from 'cheerio';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Storage, isFileExist } from '../../storage';
 import { setupMiddleware, setupErrorHandlers } from '../../app';
 import rimraf from 'rimraf';
+import * as os from 'os';
 
 function getAgent() {
+  const storage = new Storage();
   const app = express();
   setupMiddleware(app);
-  app.use(apiRoutes());
+  app.use(apiRoutes(storage));
   app.use(authRoutes());
   setupErrorHandlers(app);
   return request.agent(app);
@@ -23,6 +26,7 @@ beforeEach(() => {
   restore = mock(args => {
     args.username = 'test';
     args.password = 'test';
+    args.upload = os.tmpdir()
   });
 });
 afterEach(() => {
@@ -42,17 +46,6 @@ async function login(
     .set('Content-Type', 'application/x-www-form-urlencoded');
   const cookie = (res as any).headers['set-cookie'];
   return { cookie, res };
-}
-
-function isFileExist(filepath: string) {
-  return new Promise<boolean>(resolve => {
-    fs.stat(filepath, (err, stat) => {
-      if (err) {
-        return resolve(false);
-      }
-      resolve(stat.isFile());
-    });
-  });
 }
 
 describe('route "/login"', () => {
@@ -246,5 +239,50 @@ describe('route "/file-upload"', () => {
     expect(res.status).toBe(302);
     const isExistUploadFile = await isFileExist(uploadedFile);
     expect(isExistUploadFile).toBeFalsy();
+  });
+
+  test('POST upload 2 files with auth', async () => {
+    const sourceFile = path.join(
+      __dirname,
+      'fixtures',
+      ARGS.username,
+      FILENAME
+    );
+    const uploadedFile = path.join(UPLOADDIR, ARGS.username, FILENAME);
+    const FILENAME2 = '1_2.txt';
+
+    const isSourceFileExist = await isFileExist(sourceFile);
+    expect(isSourceFileExist).toBeTruthy();
+    const isUploadedFileExist = await isFileExist(uploadedFile);
+    expect(isUploadedFileExist).toBeFalsy();
+
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const res = await agent
+      .post('/file-upload')
+      .set('Cookie', cookie)
+      .attach('file', sourceFile);
+    expect(res.body).toEqual({
+      filename: FILENAME,
+      mimetype: 'text/plain',
+      size: 8,
+      url: `/media/test/${FILENAME}`
+    });
+    const isUploadedFileExist2 = await isFileExist(uploadedFile);
+    expect(isUploadedFileExist2).toBeTruthy();
+
+    const res2 = await agent
+      .post('/file-upload')
+      .set('Cookie', cookie)
+      .attach('file', sourceFile);
+    expect(res2.body).toEqual({
+      filename: FILENAME2,
+      mimetype: 'text/plain',
+      size: 8,
+      url: `/media/test/${FILENAME2}`
+    });
+
+    const isUploadedFileExist3 = await isFileExist(uploadedFile);
+    expect(isUploadedFileExist3).toBeTruthy();
   });
 });
