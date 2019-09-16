@@ -11,4 +11,5 @@ COPY package.json /app
 COPY yarn.lock /app
 COPY views /app/views
 RUN yarn install --production
+ENV NODE_ENV=production
 CMD [ "node", "/app/lib/index.js" ]

@@ -5,7 +5,6 @@ import apiRoutes from '../api';
 import authRoutes from '../auth';
 import cheerio from 'cheerio';
 import * as path from 'path';
-import * as fs from 'fs';
 import { Storage, isFileExist } from '../../storage';
 import { setupMiddleware, setupErrorHandlers } from '../../app';
 import rimraf from 'rimraf';
