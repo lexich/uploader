@@ -15,7 +15,20 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
       .catch(next);
   });
 
-  router.get('/files', (req, res, next) => {
+  router.get('/:user/files', (req, res, next) => {
+    try {
+      const user = getUser(req);
+      if (user.username !== req.params.user) {
+        if (req.xhr) {
+          res.status(401).json({ error: 'Unauthorize access' });
+        } else {
+          res.redirect('/');
+        }
+      }
+    } catch (err) {
+      return next(err);
+    }
+
     storageInterface.getFileList(req)
       .then(files => {
         if (req.xhr) {

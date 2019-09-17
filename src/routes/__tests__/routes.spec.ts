@@ -88,10 +88,16 @@ describe('route "/login"', () => {
 });
 
 describe('route "/files"', () => {
+  test('GET xhr without auth', async () => {
+    const res = await getAgent()
+      .get('/test/files')
+      .set('X-Requested-With', 'XMLHttpRequest');
+    expect(res.status).toBe(401);
+  });
+
   test('GET without auth', async () => {
     const res = await getAgent()
-      .get('/files')
-      .set('X-Requested-With', 'XMLHttpRequest');
+      .get('/test/files')
     expect(res.status).toBe(401);
   });
 
@@ -99,17 +105,40 @@ describe('route "/files"', () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const res = await agent
-      .get('/files')
+      .get('/test/files')
       .set('Cookie', cookie)
       .set('X-Requested-With', 'XMLHttpRequest');
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
   });
 
+  test('GET xhr with auth but wrong userpath', async () => {
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const res = await agent
+      .get('/test1/files')
+      .set('Cookie', cookie)
+      .set('X-Requested-With', 'XMLHttpRequest');
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({
+      error: 'Unauthorize access'
+    });
+  });
+
+  test('GET  with auth but wrong userpath', async () => {
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const res = await agent
+      .get('/test1/files')
+      .set('Cookie', cookie)
+    expect(res.status).toBe(302);
+    expect(res.header.location).toBe('/');
+  });
+
   test('GET with auth without content', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
-    const res = await agent.get('/files').set('Cookie', cookie);
+    const res = await agent.get('/test/files').set('Cookie', cookie);
     expect(res.status).toBe(200);
 
     const $ = cheerio.load(res.text);
@@ -125,7 +154,7 @@ describe('route "/files"', () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const res = await agent
-      .get('/files')
+      .get('/test/files')
       .set('Cookie', cookie)
       .set('X-Requested-With', 'XMLHttpRequest');
     expect(res.status).toBe(200);
@@ -143,7 +172,7 @@ describe('route "/files"', () => {
     });
     const agent = getAgent();
     const { cookie } = await login(agent);
-    const res = await agent.get('/files').set('Cookie', cookie);
+    const res = await agent.get('/test/files').set('Cookie', cookie);
     expect(res.status).toBe(200);
     const $ = cheerio.load(res.text);
     const a = $('a[data-link]');
