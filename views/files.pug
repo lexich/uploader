@@ -1,0 +1,10 @@
+extends base
+block body
+    h1 Files
+    ul(data-list)
+        each file in files
+            li
+                .card
+                    .card-body
+                        a(href=file.url data-link)
+                            = file.name

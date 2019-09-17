@@ -18,7 +18,11 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
   router.get('/files', (req, res, next) => {
     storageInterface.getFileList(req)
       .then(files => {
-        res.json(files).end();
+        if (req.xhr) {
+          res.json(files).end();
+        } else {
+          res.render('files', { files });
+        }
       })
       .catch(next);
   });

@@ -25,7 +25,7 @@ beforeEach(() => {
   restore = mock(args => {
     args.username = 'test';
     args.password = 'test';
-    args.upload = os.tmpdir()
+    args.upload = os.tmpdir();
   });
 });
 afterEach(() => {
@@ -95,7 +95,7 @@ describe('route "/files"', () => {
     expect(res.status).toBe(401);
   });
 
-  test('GET with auth without content', async () => {
+  test('GET xhr with auth without content', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const res = await agent
@@ -106,7 +106,19 @@ describe('route "/files"', () => {
     expect(res.body).toEqual([]);
   });
 
-  test('GET with auth with content', async () => {
+  test('GET with auth without content', async () => {
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const res = await agent.get('/files').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+
+    const $ = cheerio.load(res.text);
+    const ul = $('ul[data-list]');
+    expect(ul.length).toBe(1);
+    expect(ul.children('li').length).toBe(0);
+  });
+
+  test('GET xhr with auth with content', async () => {
     mock(args => {
       args.upload = path.join(__dirname, 'fixtures');
     });
@@ -123,6 +135,21 @@ describe('route "/files"', () => {
         url: '/media/test/1.txt'
       }
     ]);
+  });
+
+  test('GET with auth with content', async () => {
+    mock(args => {
+      args.upload = path.join(__dirname, 'fixtures');
+    });
+    const agent = getAgent();
+    const { cookie } = await login(agent);
+    const res = await agent.get('/files').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+    const $ = cheerio.load(res.text);
+    const a = $('a[data-link]');
+    expect(a.length).toBe(1);
+    expect(a.attr('href')).toBe('/media/test/1.txt');
+    expect(a.text()).toBe('1.txt');
   });
 });
 
