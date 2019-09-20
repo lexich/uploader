@@ -6,3 +6,4 @@ database.db
 docker-compose.yml
 yarn-error.log
 .vscode
+/logs

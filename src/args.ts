@@ -20,7 +20,11 @@ const ARGS = {
     password: process.env.password!,
     secret: process.env.secret!,
     upload: process.env.upload || 'uploads',
-    PORT: +(process.env.PORT || 3000)
+    PORT: +(process.env.PORT || 3000),
+    isProduction: process.env.NODE_ENV === 'production',
+    logdir: process.env.logfilename || 'logs',
+    logfilename: process.env.logfilename || 'service.log',
+    logerrorfilename: process.env.logerrorfilename || 'error.log'
 };
 
 export function mock(fn: (args: typeof ARGS) => void) {

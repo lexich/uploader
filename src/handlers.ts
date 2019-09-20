@@ -1,17 +1,6 @@
 import { NextFunction, Response, Request } from 'express-serve-static-core';
 import { InvalidLoginError } from './errors';
 
-export function logErrors(
-  err: Error,
-  _req: Request,
-  _res: Response,
-  next: NextFunction
-) {
-  if (!(err instanceof InvalidLoginError)) {
-    console.error(err.stack);
-  }
-  next(err);
-}
 
 export function getCode(err: Error): number {
   if (err instanceof InvalidLoginError) {

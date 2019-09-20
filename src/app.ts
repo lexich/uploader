@@ -1,6 +1,8 @@
 import express from 'express';
 import * as pug from 'pug';
 import * as path from 'path';
+import winston from 'winston';
+import expressWinston from 'express-winston';
 import session from 'express-session';
 import bodyParser from 'body-parser';
 import { passport } from './passport';
@@ -9,6 +11,7 @@ import * as handlers from './handlers';
 import { Storage } from './storage';
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
+
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -38,10 +41,37 @@ export function setupMiddleware(app: express.Express, opts?: IMiddlewareMocks) {
   app.engine('html', (pug as any).__express as any);
   app.set('views', path.resolve(__dirname, '..', 'views'));
   app.set('view engine', 'pug');
+  app.use(expressWinston.logger({
+    transports: [
+      args.isProduction ? new winston.transports.File({
+        filename: args.logfilename,
+        dirname: args.logdir
+      }) :
+      new winston.transports.Console()
+    ],
+    format: winston.format.combine(
+      winston.format.json()
+    ),
+    meta: false,
+    expressFormat: true,
+    colorize: false
+  }));
 }
 
 export function setupErrorHandlers(app: express.Express) {
-  app.use(handlers.logErrors);
+  app.use(expressWinston.errorLogger({
+    transports: [
+      args.isProduction ? new winston.transports.File({
+        filename: args.logfilename,
+        dirname: args.logdir
+      }) :
+      new winston.transports.Console()
+    ],
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.json()
+    )
+  }));
   app.use(handlers.clientErrorHandler);
   app.use(handlers.errorHandler);
 }
