@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { ensureLoggedIn } from 'connect-ensure-login';
 import storage, { IStorageInterface, getUser, IFile } from '../storage';
-
+import { NotFound } from '../errors';
+import * as fs from 'fs';
+import ARGS from '../args';
 
 export default (storageInterface: IStorageInterface, router = Router()) => {
   router.get('/', ensureLoggedIn(), (req, res, next) => {
@@ -52,5 +54,36 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
       size, filename, mimetype, url
     }).end();
   });
+
+  router.delete('/file-remove', ensureLoggedIn(), (req, res, next) => {
+    const user = getUser(req);
+    const { file } = req.query;
+    if (!file) {
+      return next(new NotFound(`file can't delete`));
+    }
+    const fileDelete: IFile = {
+      url: file,
+      name: ''
+    };
+
+    storageInterface.remove(user.username, fileDelete).then(
+      isRemove => new Promise<void>((resolve, reject) => {
+        if (!isRemove) {
+          return reject(new NotFound('file can\'t delete'));
+        }
+        const url = fileDelete.url.replace('/media', ARGS.upload)
+        fs.unlink(url, err => {
+          if (err) {
+            storageInterface.add(user.username, fileDelete);
+            return reject(err);
+          }
+          resolve()
+        })
+      })
+    ).then(() => {
+      res.status(200).json({ ok: true }).end();
+    }, next);
+  });
+
   return router;
 };

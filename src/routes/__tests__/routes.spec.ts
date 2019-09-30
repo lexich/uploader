@@ -47,6 +47,15 @@ async function login(
   return { cookie, res };
 }
 
+async function uploadFile(sourceFile: string, agent = getAgent()) {
+  const { cookie } = await login(agent);
+  const res = await agent
+    .post('/file-upload')
+    .set('Cookie', cookie)
+    .attach('file', sourceFile);
+  return { res, cookie };
+}
+
 describe('route "/login"', () => {
   test('GET without auth should render template', async () => {
     const res = await getAgent().get('/login');
@@ -234,6 +243,39 @@ describe('route "/logout"', () => {
   });
 });
 
+describe('route "/file-remove"', () => {
+  let unmock: any;
+  const UPLOADDIR = path.join(__dirname, 'fixtures', 'tmp');
+  const FILENAME = '1.txt';
+  beforeEach(() => {
+    unmock = mock(args => {
+      args.upload = UPLOADDIR;
+    });
+  });
+
+  afterEach(done => {
+    const cleanDir = path.join(UPLOADDIR, ARGS.username);
+    unmock();
+    rimraf(cleanDir, () => done());
+  });
+
+  test('upload and remove', async () => {
+    const sourceFile = path.join(
+      __dirname,
+      'fixtures',
+      ARGS.username,
+      FILENAME
+    );
+    const agent = getAgent();
+    const { res, cookie } = await uploadFile(sourceFile, agent);
+    expect(res.status).toBe(200);
+    const { url } = res.body;
+    expect(url).toBe(`/media/${ARGS.username}/1.txt`);
+    const res2 = await agent.delete(`/file-remove?file=${url}`).set('Cookie', cookie);
+    expect(res2.status).toBe(200);
+  })
+});
+
 describe('route "/file-upload"', () => {
   let unmock: any;
   const UPLOADDIR = path.join(__dirname, 'fixtures', 'tmp');
@@ -265,11 +307,7 @@ describe('route "/file-upload"', () => {
     expect(isUploadedFileExist).toBeFalsy();
 
     const agent = getAgent();
-    const { cookie } = await login(agent);
-    const res = await agent
-      .post('/file-upload')
-      .set('Cookie', cookie)
-      .attach('file', sourceFile);
+    const { res } = await uploadFile(sourceFile, agent)
     expect(res.body).toEqual({
       filename: FILENAME,
       mimetype: 'text/plain',

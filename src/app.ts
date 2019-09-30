@@ -41,6 +41,16 @@ export function setupMiddleware(app: express.Express, opts?: IMiddlewareMocks) {
   app.engine('html', (pug as any).__express as any);
   app.set('views', path.resolve(__dirname, '..', 'views'));
   app.set('view engine', 'pug');
+}
+
+export function setupErrorHandlers(app: express.Express) {
+  app.use(handlers.clientErrorHandler);
+  app.use(handlers.errorHandler);
+}
+
+export function initApp(app = express()) {
+  const storageInterface = new Storage();
+  setupMiddleware(app);
   app.use(expressWinston.logger({
     transports: [
       args.isProduction ? new winston.transports.File({
@@ -56,9 +66,9 @@ export function setupMiddleware(app: express.Express, opts?: IMiddlewareMocks) {
     expressFormat: true,
     colorize: false
   }));
-}
-
-export function setupErrorHandlers(app: express.Express) {
+  app.use(apiRoutes(storageInterface));
+  app.use(authRoutes());
+  app.use('/media', express.static(args.upload));
   app.use(expressWinston.errorLogger({
     transports: [
       args.isProduction ? new winston.transports.File({
@@ -72,16 +82,6 @@ export function setupErrorHandlers(app: express.Express) {
       winston.format.json()
     )
   }));
-  app.use(handlers.clientErrorHandler);
-  app.use(handlers.errorHandler);
-}
-
-export function initApp(app = express()) {
-  const storageInterface = new Storage();
-  setupMiddleware(app);
-  app.use(apiRoutes(storageInterface));
-  app.use(authRoutes());
-  app.use('/media', express.static(args.upload));
   setupErrorHandlers(app);
   app.listen(args.PORT);
 }

@@ -90,7 +90,7 @@ function getFiles(filedir: string, username: string): Promise<IFile[]> {
 export interface IStorageInterface {
   get(username: string): Promise<IFile[]>;
   add(username: string, file: IFile): Promise<void>;
-  remove(username: string, file: IFile): Promise<void>;
+  remove(username: string, file: IFile): Promise<boolean>;
   clear(username: string): Promise<void>;
   getFileList(req: Express.Request): Promise<IFile[]>;
 }
@@ -120,9 +120,13 @@ export class Storage implements IStorageInterface {
     });
   }
 
-  remove(username: string, file: IFile): Promise<void> {
+  remove(username: string, file: IFile): Promise<boolean> {
+    const list = this.filesStorage[username];
+    const len = list ? list.length : 0;
     return this.get(username).then(files => {
-      this.filesStorage[username] = files.filter(f => file.url === f.url);
+      const newList = files.filter(f => file.url !== f.url);
+      this.filesStorage[username] = newList;
+      return newList.length !== len;
     });
   }
 
