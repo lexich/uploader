@@ -12,7 +12,6 @@ import { Storage } from './storage';
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
 
-
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
 }
@@ -25,7 +24,7 @@ export function setupMiddleware(app: express.Express, opts?: IMiddlewareMocks) {
       secret: args.secret,
       resave: true,
       saveUninitialized: true,
-      cookie: { maxAge: 60000 }
+      cookie: { maxAge: 12 * 60 * 3600 }
     }))
   );
   app.use(passport.initialize());

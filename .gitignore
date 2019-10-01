@@ -2,7 +2,7 @@
 /lib
 /uploads
 .env
-database.db
+dev.db
 docker-compose.yml
 yarn-error.log
 .vscode

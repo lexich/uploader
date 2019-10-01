@@ -19,6 +19,7 @@ const ARGS = {
     username: process.env.username!,
     password: process.env.password!,
     secret: process.env.secret!,
+    dbpath: process.env.dbpath || 'dev.db',
     upload: process.env.upload || 'uploads',
     PORT: +(process.env.PORT || 3000),
     isProduction: process.env.NODE_ENV === 'production',
