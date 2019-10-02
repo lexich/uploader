@@ -9,6 +9,9 @@ import { Storage, isFileExist } from '../../storage';
 import { setupMiddleware, setupErrorHandlers } from '../../app';
 import rimraf from 'rimraf';
 import * as os from 'os';
+import { Connection } from 'typeorm';
+import { connectHelper } from '../../db';
+import { User } from '../../entity/user';
 
 function getAgent() {
   const storage = new Storage();
@@ -21,10 +24,30 @@ function getAgent() {
 }
 
 let restore: () => void;
+let db: Connection;
+let drop: () => Promise<void>;
+const USERNAME = 'test';
+const PASSWORD = 'test';
+
+beforeAll(async () => {
+  const res = await connectHelper('user.test');
+  db = res.db;
+  drop = res.drop;
+  restore = mock(args => {
+    args.dbpath = path.join(__dirname, 'fixtures', 'tmp', 'test.db');
+  });
+  const user = new User();
+  user.name = USERNAME;
+  user.password = PASSWORD;
+  await db.manager.save(user);
+});
+
+afterAll(async () => {
+  await drop();
+});
+
 beforeEach(() => {
   restore = mock(args => {
-    args.username = 'test';
-    args.password = 'test';
     args.upload = os.tmpdir();
   });
 });
@@ -32,11 +55,13 @@ afterEach(() => {
   restore();
 });
 
+beforeAll(() => {});
+
 async function login(
   agent: request.SuperTest<request.Test>,
   params = {
-    username: 'test',
-    password: 'test'
+    username: USERNAME,
+    password: PASSWORD
   }
 ) {
   const res = await agent
@@ -92,7 +117,7 @@ describe('route "/login"', () => {
     const username = $('form input[name=username]');
     expect(username.val()).toBe('test1');
     const message = $('form .text-danger');
-    expect(message.text()).toBe(`User test1 wasn't found`);
+    expect(message.text()).toBe('Invalid username or password');
   });
 });
 
@@ -105,8 +130,7 @@ describe('route "/files"', () => {
   });
 
   test('GET without auth', async () => {
-    const res = await getAgent()
-      .get('/test/files')
+    const res = await getAgent().get('/test/files');
     expect(res.status).toBe(401);
   });
 
@@ -137,9 +161,7 @@ describe('route "/files"', () => {
   test('GET  with auth but wrong userpath', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
-    const res = await agent
-      .get('/test1/files')
-      .set('Cookie', cookie)
+    const res = await agent.get('/test1/files').set('Cookie', cookie);
     expect(res.status).toBe(302);
     expect(res.header.location).toBe('/');
   });
@@ -254,7 +276,7 @@ describe('route "/file-remove"', () => {
   });
 
   afterEach(done => {
-    const cleanDir = path.join(UPLOADDIR, ARGS.username);
+    const cleanDir = path.join(UPLOADDIR, USERNAME);
     unmock();
     rimraf(cleanDir, () => done());
   });
@@ -263,17 +285,19 @@ describe('route "/file-remove"', () => {
     const sourceFile = path.join(
       __dirname,
       'fixtures',
-      ARGS.username,
+      USERNAME,
       FILENAME
     );
     const agent = getAgent();
     const { res, cookie } = await uploadFile(sourceFile, agent);
     expect(res.status).toBe(200);
     const { url } = res.body;
-    expect(url).toBe(`/media/${ARGS.username}/1.txt`);
-    const res2 = await agent.delete(`/file-remove?file=${url}`).set('Cookie', cookie);
+    expect(url).toBe(`/media/${USERNAME}/1.txt`);
+    const res2 = await agent
+      .delete(`/file-remove?file=${url}`)
+      .set('Cookie', cookie);
     expect(res2.status).toBe(200);
-  })
+  });
 });
 
 describe('route "/file-upload"', () => {
@@ -287,7 +311,7 @@ describe('route "/file-upload"', () => {
   });
 
   afterEach(done => {
-    const cleanDir = path.join(UPLOADDIR, ARGS.username);
+    const cleanDir = path.join(UPLOADDIR, USERNAME);
     unmock();
     rimraf(cleanDir, () => done());
   });
@@ -296,10 +320,10 @@ describe('route "/file-upload"', () => {
     const sourceFile = path.join(
       __dirname,
       'fixtures',
-      ARGS.username,
+      USERNAME,
       FILENAME
     );
-    const uploadedFile = path.join(UPLOADDIR, ARGS.username, FILENAME);
+    const uploadedFile = path.join(UPLOADDIR, USERNAME, FILENAME);
 
     const isSourceFileExist = await isFileExist(sourceFile);
     expect(isSourceFileExist).toBeTruthy();
@@ -307,7 +331,7 @@ describe('route "/file-upload"', () => {
     expect(isUploadedFileExist).toBeFalsy();
 
     const agent = getAgent();
-    const { res } = await uploadFile(sourceFile, agent)
+    const { res } = await uploadFile(sourceFile, agent);
     expect(res.body).toEqual({
       filename: FILENAME,
       mimetype: 'text/plain',
@@ -322,10 +346,10 @@ describe('route "/file-upload"', () => {
     const sourceFile = path.join(
       __dirname,
       'fixtures',
-      ARGS.username,
+      USERNAME,
       FILENAME
     );
-    const uploadedFile = path.join(UPLOADDIR, ARGS.username, FILENAME);
+    const uploadedFile = path.join(UPLOADDIR, USERNAME, FILENAME);
     const res = await getAgent()
       .post('/file-upload')
       .attach('file', sourceFile);
@@ -338,10 +362,10 @@ describe('route "/file-upload"', () => {
     const sourceFile = path.join(
       __dirname,
       'fixtures',
-      ARGS.username,
+      USERNAME,
       FILENAME
     );
-    const uploadedFile = path.join(UPLOADDIR, ARGS.username, FILENAME);
+    const uploadedFile = path.join(UPLOADDIR, USERNAME, FILENAME);
     const FILENAME2 = '1_2.txt';
 
     const isSourceFileExist = await isFileExist(sourceFile);

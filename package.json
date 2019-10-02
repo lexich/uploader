@@ -7,15 +7,18 @@
     "test": "jest src",
     "compile": "tsc",
     "watch": "node_modules/.bin/tsc --watch",
-    "start-watch": "nodemon lib/index.js",
+    "nodemon": "nodemon lib/index.js",
     "start": "npm run compile && node lib/index.js",
     "debug": "node --inspect lib/index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/bcrypt": "^3.0.0",
+    "bcrypt": "^3.0.6",
     "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",
+    "class-validator": "^0.10.1",
     "connect-ensure-login": "^0.1.1",
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
@@ -26,7 +29,10 @@
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
     "pug": "^2.0.4",
+    "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.0",
+    "sqlite3": "^4.1.0",
+    "typeorm": "^0.2.19",
     "winston": "^3.2.1"
   },
   "devDependencies": {

@@ -11,6 +11,7 @@ import * as handlers from './handlers';
 import { Storage } from './storage';
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
+import { connect, initAdminUser } from './db';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -47,7 +48,10 @@ export function setupErrorHandlers(app: express.Express) {
   app.use(handlers.errorHandler);
 }
 
-export function initApp(app = express()) {
+export async function initApp(app = express()) {
+  const db = await connect(args.dbpath);
+  await initAdminUser(db);
+
   const storageInterface = new Storage();
   setupMiddleware(app);
   app.use(expressWinston.logger({

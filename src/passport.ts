@@ -2,32 +2,29 @@ import passport from 'passport';
 import {
     Strategy as LocalStrategy
 } from 'passport-local';
-import args from './args';
+import { getCustomRepository } from 'typeorm';
+import { User, UserRepository } from './entity/user';
 import { InvalidLoginError } from './errors';
 
-passport.serializeUser(function (user: any, done) {
-    done(null, user);
+passport.serializeUser(function (user: User, done) {
+    done(null, user.id);
 });
 
-passport.deserializeUser(function (user, done) {
-    done(null, user);
+passport.deserializeUser(function (id: number, done) {
+    getCustomRepository(UserRepository).findOne(id).then(
+        user => done(null, user),
+        err => done(err)
+    );
 });
 
 passport.use(
     new LocalStrategy(function (username, password, done) {
-        if (username !== args.username) {
-            return done(new InvalidLoginError(`User ${username} wasn't found`), false, {
-                message: 'Incorrect username.'
-            });
-        }
-        if (password !== args.password) {
-            return done(new InvalidLoginError(`Incorrect password`), false, {
-                message: 'Incorrect password.'
-            });
-        }
-        done(null, {
-            username
-        });
+        const repo = getCustomRepository(UserRepository);
+        repo.findUser(username, password)
+            .then(user => {
+                user ? done(null, user) : done(new InvalidLoginError('Invalid username or password'))
+            })
+            .catch(err => done(err, false));
     })
 );
 

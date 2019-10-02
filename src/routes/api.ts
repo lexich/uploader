@@ -20,7 +20,7 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
   router.get('/:user/files', (req, res, next) => {
     try {
       const user = getUser(req);
-      if (user.username !== req.params.user) {
+      if (user.name !== req.params.user) {
         if (req.xhr) {
           res.status(401).json({ error: 'Unauthorize access' });
         } else {
@@ -45,11 +45,11 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
   router.post('/file-upload', ensureLoggedIn(), storage.single('file'), (req, res) => {
     const { size, filename, mimetype } = req.file;
     const user = getUser(req);
-    const url = `/media/${user.username}/${filename}`
+    const url = `/media/${user.name}/${filename}`
     const file: IFile = {
       url, name: filename
     }
-    storageInterface.add(user.username, file);
+    storageInterface.add(user.name, file);
     res.status(200).json({
       size, filename, mimetype, url
     }).end();
@@ -66,7 +66,7 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
       name: ''
     };
 
-    storageInterface.remove(user.username, fileDelete).then(
+    storageInterface.remove(user.name, fileDelete).then(
       isRemove => new Promise<void>((resolve, reject) => {
         if (!isRemove) {
           return reject(new NotFound('file can\'t delete'));
@@ -74,7 +74,7 @@ export default (storageInterface: IStorageInterface, router = Router()) => {
         const url = fileDelete.url.replace('/media', ARGS.upload)
         fs.unlink(url, err => {
           if (err) {
-            storageInterface.add(user.username, fileDelete);
+            storageInterface.add(user.name, fileDelete);
             return reject(err);
           }
           resolve()

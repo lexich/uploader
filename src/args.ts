@@ -16,8 +16,6 @@ if (!process.env.secret) {
 }
 
 const ARGS = {
-    username: process.env.username!,
-    password: process.env.password!,
     secret: process.env.secret!,
     dbpath: process.env.dbpath || 'dev.db',
     upload: process.env.upload || 'uploads',

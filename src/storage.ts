@@ -6,10 +6,8 @@ import * as fs from 'fs';
 import { resolve } from 'bluebird';
 import rimraf from 'rimraf';
 import { InvalidLoginError } from './errors';
+import { User } from './entity/user';
 
-export interface User {
-  username: string;
-}
 
 export function getUser(req: Express.Request): User {
   if (!req.user) {
@@ -145,8 +143,8 @@ export class Storage implements IStorageInterface {
 
   getFileList(req: Express.Request): Promise<IFile[]> {
     try {
-      const { username } = getUser(req);
-      return this.get(username);
+      const { name } = getUser(req);
+      return this.get(name);
     } catch (err) {
       return Promise.reject(err);
     }
@@ -182,8 +180,8 @@ async function fixFileName(filename: string, filedir: string) {
 export default multer({
   storage: multer.diskStorage({
     destination: function(req, _, cb) {
-      const { username } = getUser(req);
-      const filedir = getFileDir(username);
+      const { name } = getUser(req);
+      const filedir = getFileDir(name);
       mkdirp(filedir, err => {
         if (err) {
           return cb(err, filedir);
@@ -192,8 +190,8 @@ export default multer({
       });
     },
     filename(req, file, cb) {
-      const { username } = getUser(req);
-      const filedir = getFileDir(username);
+      const { name } = getUser(req);
+      const filedir = getFileDir(name);
       fixFileName(file.originalname, filedir).then(
         name => cb(null, name),
         err => cb(err, '')
