@@ -4,6 +4,8 @@ import storage, { getUser } from '../storage';
 import { File, FileRepository } from '../entity/file';
 import { NotFound } from '../errors';
 import { Connection } from 'typeorm';
+import ARGS from '../args';
+import * as fs from 'fs';
 
 export default (db: Connection, router = Router()) => {
   const fileRepository = db.getCustomRepository(FileRepository);
@@ -57,12 +59,16 @@ export default (db: Connection, router = Router()) => {
     if (!fileid) {
       return next(new NotFound(`file can't delete`));
     }
-    const file = await fileRepository.removeByIdAndUser(fileid, user);
-    if (!file) {
-      return next(new NotFound(`file can't delete`));
+    try {
+      const file = await fileRepository.findOneOrFail(fileid);
+      file.user = user;
+      const filePath = file.url(ARGS.upload);
+      await fileRepository.removeByIdAndUser(fileid, user);
+      await new Promise((resolve, reject) => fs.unlink(filePath, err => err ? reject(err) : resolve()))
+      res.status(200).json({ ok: true }).end();
+    } catch (err) {
+      return next(err);
     }
-    res.status(200).json({ ok: true }).end();
-    // const url = file.url().replace('/media', ARGS.upload)
   });
 
   return router;
