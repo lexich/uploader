@@ -47,11 +47,7 @@ export class FileRepository extends Repository<File> {
   }
 
   async removeByIdAndUser(id: number, user: User) {
-    const file = await this.findByIdAndUser(id, user);
-    if (file) {
-      return this.remove(file);
-    }
-    return Promise.resolve();
+    return this.delete({ id, user });
   }
 
 }

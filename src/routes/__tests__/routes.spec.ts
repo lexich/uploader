@@ -33,7 +33,7 @@ function getAgent() {
 
 beforeAll(async () => {
   const res = await connectHelper('user.test', {
-    logging: true
+    logging: false
   });
   db = res.db;
   drop = res.drop;
@@ -98,7 +98,7 @@ async function uploadFile(sourceFile: string, agent = getAgent()) {
 }
 
 describe('route "/login"', () => {
-  test.skip('GET without auth should render template', async () => {
+  test('GET without auth should render template', async () => {
     const res = await getAgent().get('/login');
     expect(res.status).toBe(200);
     const $ = cheerio.load(res.text);
@@ -113,7 +113,7 @@ describe('route "/login"', () => {
     expect(sumbit.length).toBe(1);
   });
 
-  test.skip('POST with correct password and access to index page', async () => {
+  test('POST with correct password and access to index page', async () => {
     const agent = getAgent();
     const { res, cookie } = await login(agent);
     expect(res.redirect).toBeTruthy();
@@ -122,7 +122,7 @@ describe('route "/login"', () => {
     expect(resIndex.status).toBe(200);
   });
 
-  test.skip('POST with incorrect password', async () => {
+  test('POST with incorrect password', async () => {
     const agent = getAgent();
     const { res } = await login(agent, {
       username: 'test1',
@@ -138,19 +138,19 @@ describe('route "/login"', () => {
 });
 
 describe('route "/files"', () => {
-  test.skip('GET xhr without auth', async () => {
+  test('GET xhr without auth', async () => {
     const res = await getAgent()
       .get('/test/files')
       .set('X-Requested-With', 'XMLHttpRequest');
     expect(res.status).toBe(401);
   });
 
-  test.skip('GET without auth', async () => {
+  test('GET without auth', async () => {
     const res = await getAgent().get('/test/files');
     expect(res.status).toBe(401);
   });
 
-  test.skip('GET xhr with auth without content', async () => {
+  test('GET xhr with auth without content', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent, {
       username: USERNAME_EMPTY,
@@ -164,7 +164,7 @@ describe('route "/files"', () => {
     expect(res.body).toEqual([]);
   });
 
-  test.skip('GET xhr with auth but wrong userpath', async () => {
+  test('GET xhr with auth but wrong userpath', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const res = await agent
@@ -177,7 +177,7 @@ describe('route "/files"', () => {
     });
   });
 
-  test.skip('GET  with auth but wrong userpath', async () => {
+  test('GET  with auth but wrong userpath', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const res = await agent.get('/test1/files').set('Cookie', cookie);
@@ -185,7 +185,7 @@ describe('route "/files"', () => {
     expect(res.header.location).toBe('/');
   });
 
-  test.skip('GET with auth without content', async () => {
+  test('GET with auth without content', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent, {
       username: USERNAME_EMPTY,
@@ -201,7 +201,7 @@ describe('route "/files"', () => {
     expect(ul.children('li').length).toBe(0);
   });
 
-  test.skip('GET xhr with auth with content', async () => {
+  test('GET xhr with auth with content', async () => {
     mock(args => {
       args.upload = path.join(__dirname, 'fixtures');
     });
@@ -217,7 +217,7 @@ describe('route "/files"', () => {
     expect(file.name).toBe('1.txt');
   });
 
-  test.skip('GET with auth with content', async () => {
+  test('GET with auth with content', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const res = await agent.get(`/${USERNAME}/files`).set('Cookie', cookie);
@@ -231,13 +231,13 @@ describe('route "/files"', () => {
 });
 
 describe('route "/"', () => {
-  test.skip('GET without auth shoud redirect to login page', async () => {
+  test('GET without auth shoud redirect to login page', async () => {
     const res = await getAgent().get('/');
     expect(res.redirect).toBeTruthy();
     expect(res.header.location).toBe('/login');
   });
 
-  test.skip('GET with auth shoud redirect to login page', async () => {
+  test('GET with auth shoud redirect to login page', async () => {
     mock(args => {
       args.upload = path.join(__dirname, 'fixtures');
     });
@@ -261,13 +261,13 @@ describe('route "/"', () => {
 });
 
 describe('route "/logout"', () => {
-  test.skip('GET simple', async () => {
+  test('GET simple', async () => {
     const res = await getAgent().get('/logout');
     expect(res.redirect).toBeTruthy();
     expect(res.header.location).toBe('/login');
   });
 
-  test.skip('login -> index -> logout -> [index -> login]', async () => {
+  test('login -> index -> logout -> [index -> login]', async () => {
     const agent = getAgent();
     const { cookie } = await login(agent);
     const resIndexAuth = await agent.get('/').set('Cookie', cookie);
@@ -331,7 +331,7 @@ describe('route "/file-upload"', () => {
     rimraf(cleanDir, () => done());
   });
 
-  test.skip('POST upload file with auth', async () => {
+  test('POST upload file with auth', async () => {
     const sourceFile = path.join(__dirname, 'fixtures', USERNAME, FILENAME);
     const uploadedFile = path.join(UPLOADDIR, USERNAME, FILENAME);
 
@@ -353,7 +353,7 @@ describe('route "/file-upload"', () => {
     expect(isUploadedFileExist2).toBeTruthy();
   });
 
-  test.skip('POST upload file without auth', async () => {
+  test('POST upload file without auth', async () => {
     const sourceFile = path.join(__dirname, 'fixtures', USERNAME, FILENAME);
     const uploadedFile = path.join(UPLOADDIR, USERNAME, FILENAME);
     const res = await getAgent()
@@ -364,7 +364,7 @@ describe('route "/file-upload"', () => {
     expect(isExistUploadFile).toBeFalsy();
   });
 
-  test.skip('POST upload 2 files with auth', async () => {
+  test('POST upload 2 files with auth', async () => {
     const sourceFile = path.join(__dirname, 'fixtures', USERNAME, FILENAME);
     const uploadedFile = path.join(UPLOADDIR, USERNAME, FILENAME);
     const FILENAME2 = '1_2.txt';
