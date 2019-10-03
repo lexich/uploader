@@ -3,14 +3,21 @@ import { createConnection, Connection } from 'typeorm';
 import * as path from 'path';
 import * as fs from 'fs';
 import { User, UserRepository } from './entity/user';
+import { File } from './entity/file';
+import { Session } from './entity/session';
+import { SqliteConnectionOptions } from 'typeorm/driver/sqlite/SqliteConnectionOptions';
 
-export function connect(dbPath: string) {
+export function connect(
+  dbPath: string,
+  connectionOptions?: Partial<SqliteConnectionOptions>
+) {
   return createConnection({
     type: 'sqlite',
     database: dbPath,
     synchronize: true,
     logging: false,
-    entities: [User]
+    entities: [User, File, Session],
+    ...connectionOptions
   });
 }
 
@@ -26,10 +33,9 @@ export async function initAdminUser(db: Connection) {
   }
 }
 
-
-export function connectHelper(name: string) {
+export function connectHelper(name: string, connectionOptions?: Partial<SqliteConnectionOptions>) {
   const dbPath = path.join(__dirname, 'tmp', name + '.db');
-  return connect(dbPath).then(db => {
+  return connect(dbPath, connectionOptions).then(db => {
     return {
       db,
       async drop() {

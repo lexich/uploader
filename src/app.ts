@@ -1,23 +1,25 @@
 import express from 'express';
 import * as pug from 'pug';
 import * as path from 'path';
-import winston from 'winston';
+import winston, { debug } from 'winston';
 import expressWinston from 'express-winston';
 import session from 'express-session';
 import bodyParser from 'body-parser';
 import { passport } from './passport';
 import args from './args';
 import * as handlers from './handlers';
-import { Storage } from './storage';
 import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
 import { connect, initAdminUser } from './db';
+import { TypeormStore } from 'connect-typeorm/out';
+import { Connection } from 'typeorm';
+import { Session } from './entity/session';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
 }
 
-export function setupMiddleware(app: express.Express, opts?: IMiddlewareMocks) {
+export function setupMiddleware(app: express.Express, db: Connection, opts?: IMiddlewareMocks) {
   app.set('trust proxy', 1); // trust first proxy
   const mockSessionOpts = (opts ? opts.mockSessionOpts : null) || ((opts: session.SessionOptions) => opts)
   app.use(
@@ -25,7 +27,12 @@ export function setupMiddleware(app: express.Express, opts?: IMiddlewareMocks) {
       secret: args.secret,
       resave: true,
       saveUninitialized: true,
-      cookie: { maxAge: 12 * 60 * 3600 }
+      cookie: { maxAge: 12 * 60 * 3600 },
+      store: new TypeormStore({
+        cleanupLimit: 2,
+        limitSubquery: false, // If using MariaDB.
+        ttl: 86400
+      }).connect(db.getRepository(Session))
     }))
   );
   app.use(passport.initialize());
@@ -51,9 +58,7 @@ export function setupErrorHandlers(app: express.Express) {
 export async function initApp(app = express()) {
   const db = await connect(args.dbpath);
   await initAdminUser(db);
-
-  const storageInterface = new Storage();
-  setupMiddleware(app);
+  setupMiddleware(app, db);
   app.use(expressWinston.logger({
     transports: [
       args.isProduction ? new winston.transports.File({
@@ -69,7 +74,7 @@ export async function initApp(app = express()) {
     expressFormat: true,
     colorize: false
   }));
-  app.use(apiRoutes(storageInterface));
+  app.use(apiRoutes(db));
   app.use(authRoutes());
   app.use('/media', express.static(args.upload));
   app.use(expressWinston.errorLogger({
@@ -82,7 +87,8 @@ export async function initApp(app = express()) {
     ],
     format: winston.format.combine(
       winston.format.colorize(),
-      winston.format.json()
+      winston.format.prettyPrint(),
+
     )
   }));
   setupErrorHandlers(app);

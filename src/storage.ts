@@ -4,10 +4,9 @@ import * as path from 'path';
 import args from './args';
 import * as fs from 'fs';
 import { resolve } from 'bluebird';
-import rimraf from 'rimraf';
 import { InvalidLoginError } from './errors';
 import { User } from './entity/user';
-
+import { File } from './entity/file';
 
 export function getUser(req: Express.Request): User {
   if (!req.user) {
@@ -18,11 +17,6 @@ export function getUser(req: Express.Request): User {
 
 function getFileDir(username: string) {
   return path.join(args.upload, username);
-}
-
-export interface IFile {
-  url: string;
-  name: string;
 }
 
 export interface IStat {
@@ -58,98 +52,6 @@ function readdir(dirpath: string) {
   });
 }
 
-function getFiles(filedir: string, username: string): Promise<IFile[]> {
-  const files: IFile[] = [];
-  return readdir(filedir)
-    .then(filenames => {
-      const dirs: string[] = [];
-      filenames.forEach(file => {
-        if (file.stat.isFile()) {
-          files.push({
-            url: path.join('/media', username, file.name),
-            name: file.name
-          });
-        }
-        if (file.stat.isDirectory()) {
-          dirs.push(file.name, username);
-        }
-      });
-
-      if (dirs.length) {
-        return Promise.all(dirs.map(dir => getFiles(dir, username))).then(
-          data => resolve(files.concat(...data))
-        );
-      }
-      return files;
-    })
-    .catch(_ => []);
-}
-
-export interface IStorageInterface {
-  get(username: string): Promise<IFile[]>;
-  add(username: string, file: IFile): Promise<void>;
-  remove(username: string, file: IFile): Promise<boolean>;
-  clear(username: string): Promise<void>;
-  getFileList(req: Express.Request): Promise<IFile[]>;
-}
-
-export class Storage implements IStorageInterface {
-  constructor(private filesStorage: Partial<Record<string, IFile[]>> = {}) {}
-
-  get(username: string): Promise<IFile[]> {
-    try {
-      const data = this.filesStorage[username];
-      if (data) {
-        return Promise.resolve(data);
-      }
-      const filedir = getFileDir(username);
-      return getFiles(filedir, username).then(files => {
-        this.filesStorage[username] = files;
-        return files;
-      });
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-
-  add(username: string, file: IFile): Promise<void> {
-    return this.get(username).then(files => {
-      this.filesStorage[username] = files.concat(file);
-    });
-  }
-
-  remove(username: string, file: IFile): Promise<boolean> {
-    const list = this.filesStorage[username];
-    const len = list ? list.length : 0;
-    return this.get(username).then(files => {
-      const newList = files.filter(f => file.url !== f.url);
-      this.filesStorage[username] = newList;
-      return newList.length !== len;
-    });
-  }
-
-  clear(username: string): Promise<void> {
-    const filedir = getFileDir(username);
-    return new Promise((resolve, reject) => {
-      rimraf(filedir, err => {
-        if (err) {
-          return reject(err);
-        }
-        this.filesStorage[username] = undefined;
-        resolve();
-      });
-    });
-  }
-
-  getFileList(req: Express.Request): Promise<IFile[]> {
-    try {
-      const { name } = getUser(req);
-      return this.get(name);
-    } catch (err) {
-      return Promise.reject(err);
-    }
-  }
-}
 export function isFileExist(filepath: string) {
   return new Promise<boolean>(resolve => {
     fs.stat(filepath, (err, stat) => {
