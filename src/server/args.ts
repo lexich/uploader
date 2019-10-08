@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
+import * as path from 'path';
 config();
 
 
@@ -17,7 +18,7 @@ if (!process.env.secret) {
 
 const ARGS = {
     secret: process.env.secret!,
-    dbpath: process.env.dbpath || 'dev.db',
+    dbpath: process.env.dbpath || path.join(__dirname, '..', '..', 'db', 'dev.db'),
     upload: process.env.upload || 'uploads',
     PORT: +(process.env.PORT || 3000),
     isProduction: process.env.NODE_ENV === 'production',

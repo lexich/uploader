@@ -3,12 +3,12 @@ import { Connection } from 'typeorm';
 import { validate } from 'class-validator';
 import { User, UserRepository } from '../user';
 import { File, FileRepository } from '../file';
-import { file } from '@babel/types';
+import * as path from 'path';
 
 let db: Connection;
 let drop: () => Promise<void>;
 beforeAll(async () => {
-    const res = await connectHelper('user.test');
+    const res = await connectHelper(path.join('user.test'));
     db = res.db;
     drop = res.drop;
 });

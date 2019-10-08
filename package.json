@@ -6,10 +6,10 @@
   "scripts": {
     "test": "jest src",
     "compile": "tsc",
-    "watch": "node_modules/.bin/tsc --watch",
-    "nodemon": "nodemon lib/index.js",
-    "start": "npm run compile && node lib/index.js",
-    "debug": "node --inspect lib/index.js"
+    "watch": "rm -rf lib && node_modules/.bin/tsc --watch",
+    "nodemon": "nodemon lib/server/index.js",
+    "start": "npm run compile && node lib/server/index.js",
+    "debug": "node --inspect lib/server/index.js"
   },
   "author": "",
   "license": "ISC",

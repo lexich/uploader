@@ -46,7 +46,7 @@ export function setupMiddleware(app: express.Express, db: Connection, opts?: IMi
   );
 
   app.engine('html', (pug as any).__express as any);
-  app.set('views', path.resolve(__dirname, '..', 'views'));
+  app.set('views', path.resolve(__dirname, '..', '..', 'views'));
   app.set('view engine', 'pug');
 }
 

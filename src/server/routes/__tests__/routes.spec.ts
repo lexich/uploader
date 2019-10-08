@@ -32,13 +32,13 @@ function getAgent() {
 }
 
 beforeAll(async () => {
-  const res = await connectHelper('user.test', {
+  const res = await connectHelper('routes.test', {
     logging: false
   });
   db = res.db;
   drop = res.drop;
   restore = mock(args => {
-    args.dbpath = path.join(__dirname, 'fixtures', 'tmp', 'test.db');
+    args.dbpath = res.dbPath
   });
   const user = new User();
   user.name = USERNAME;

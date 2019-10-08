@@ -34,10 +34,11 @@ export async function initAdminUser(db: Connection) {
 }
 
 export function connectHelper(name: string, connectionOptions?: Partial<SqliteConnectionOptions>) {
-  const dbPath = path.join(__dirname, 'tmp', name + '.db');
+  const dbPath = path.join(__dirname, '..', '..', 'db', name + '.db');
   return connect(dbPath, connectionOptions).then(db => {
     return {
       db,
+      dbPath,
       async drop() {
         await db.dropDatabase();
         await db.close();
