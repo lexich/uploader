@@ -1,11 +1,6 @@
 extends base
-block body
-  .navbar.navbar-light.bg-light.justify-content-between
-    .navbar-brand Uploader
-    .form-inline
-      a.btn.btn-light(href="/logout" style="float: right") Logout
-  if (user)
-    #dropzone.dropzone
+block style
+  link(rel='stylesheet' href="/static/index.css")
   style.
     .link {
       text-overflow: ellipsis;
@@ -16,49 +11,10 @@ block body
       overflow: hidden;
     }
 
-  ul: each file in files
-    li: a(href=file.url)= file.name
+block body
+  #mountNode
 
 block script
-  script(type='text/javascript' init-dropzone).
-    var FILES = !{JSON.stringify(files)}
-    Dropzone.autoDiscover = false;
-    var myDropzone = new Dropzone('#dropzone', {
-      url: '/file-upload',
-      init: function() {
-        this.on('addedfile', function(file) {
-          if (file.dataURL) {
-            var a = document.createElement('a');
-            a.href = file.dataURL;
-            a.className = 'link';
-            a.innerText = file.name;
-            a.target = '_blank';
-            file.previewTemplate.appendChild(a);
-          }
-
-        });
-        this.on("success", function(file, responseText) {
-          if (responseText.url) {
-            var a = document.createElement('a');
-            a.href = responseText.url;
-            a.className = 'link';
-            a.innerText = file.name;
-            a.target = '_blank';
-            file.previewTemplate.appendChild(a);
-          }
-        });
-      }
-    });
-
-    FILES.forEach(function(file) {
-      file.dataURL = file.url;
-      myDropzone.emit('addedfile', file);
-      if (/\.(png|jpg|jpeg|bmp|gif)$/i.test(file.dataURL)) {
-        myDropzone.emit("thumbnail", file, file.dataURL);
-      }
-
-      myDropzone.files.push(file);
-      myDropzone.createThumbnailFromUrl(file, file.dataURL, function() {
-        myDropzone.emit('complete', file);
-      }, "anonymous");
-    });
+  script(type='text/javascript').
+    window.FILES = !{JSON.stringify(files)}
+  script(src="/static/index.js")

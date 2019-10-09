@@ -14,7 +14,7 @@ export default (db: Connection, router = Router()) => {
     try {
       const user = getUser(req);
       const files = await fileRepository.findAllByUser(user);
-      res.render('index', { user, files: files.map(file => ({ url: file.url(), name: file.name })) });
+      res.render('index', { user, files });
     } catch (err) {
       next(err);
     }

@@ -77,6 +77,7 @@ export async function initApp(app = express()) {
   app.use(apiRoutes(db));
   app.use(authRoutes());
   app.use('/media', express.static(args.upload));
+  app.use('/static', express.static(path.resolve(__dirname, '..', '..', 'dist')));
   app.use(expressWinston.errorLogger({
     transports: [
       args.isProduction ? new winston.transports.File({

@@ -5,5 +5,7 @@
 dev.db
 docker-compose.yml
 yarn-error.log
-.vscode
+/.vscode
 /logs
+/.cache
+/dist

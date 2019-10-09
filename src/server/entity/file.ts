@@ -19,8 +19,8 @@ export class File {
   @ManyToOne(() => User, user => user.files)
   user!: User;
 
-  url(prefix = 'media') {
-    return `/${prefix}/${this.user.name}/${this.name}`;
+  url(prefix = '/media') {
+    return `${prefix}/${this.user.name}/${this.name}`;
   }
 
   toJSON() {
