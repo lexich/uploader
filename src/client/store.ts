@@ -9,6 +9,7 @@ export interface IEvents extends StoreonEvents<IState> {
   add: IFile;
   remove: IFile;
   save: IState;
+  load: undefined;
 }
 
 const initModule: Module<IState, IEvents> = store => {
@@ -20,6 +21,11 @@ const initModule: Module<IState, IEvents> = store => {
   });
   store.on('save', (state, newState) => {
     return newState;
+  });
+  store.on('load', async (state) => {
+    const resp = await fetch('/admin/files');
+    const files: IFile[] = await resp.json();
+    store.dispatch('save', { ...state, files });
   });
   store.on('remove', async (state, data) => {
     try {

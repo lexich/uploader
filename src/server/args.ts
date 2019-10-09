@@ -20,7 +20,7 @@ const ARGS = {
     secret: process.env.secret!,
     dbpath: process.env.dbpath || path.join(__dirname, '..', '..', 'db', 'dev.db'),
     upload: process.env.upload || 'uploads',
-    PORT: +(process.env.PORT || 3000),
+    PORT: +(process.env.PORT || 3001),
     isProduction: process.env.NODE_ENV === 'production',
     logdir: process.env.logfilename || 'logs',
     logfilename: process.env.logfilename || 'service.log',

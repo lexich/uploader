@@ -6,15 +6,16 @@ import { NotFound } from '../errors';
 import { Connection } from 'typeorm';
 import ARGS from '../args';
 import * as fs from 'fs';
+import { IAssetManifest } from '../../interfaces';
 
-export default (db: Connection, router = Router()) => {
+export default (db: Connection, manifest: IAssetManifest, router = Router()) => {
   const fileRepository = db.getCustomRepository(FileRepository);
 
   router.get('/', ensureLoggedIn(), async (req, res, next) => {
     try {
       const user = getUser(req);
       const files = await fileRepository.findAllByUser(user);
-      res.render('index', { user, files });
+      res.render('index', { user, files, manifest });
     } catch (err) {
       next(err);
     }

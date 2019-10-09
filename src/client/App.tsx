@@ -1,7 +1,15 @@
 import * as React from 'react';
-import { List, Skeleton, Avatar, Layout, Upload, Icon, Button } from 'antd';
+import {
+  List,
+  Skeleton,
+  Avatar,
+  Layout,
+  Upload,
+  Icon,
+  Button,
+  Menu
+} from 'antd';
 import { IFile } from '../interfaces';
-import { UploadChangeParam } from 'antd/lib/upload';
 import { Player } from './Player';
 import useStoreon from 'storeon/react';
 import { IState, IEvents } from './store';
@@ -41,6 +49,13 @@ export function App() {
 
   return (
     <Layout>
+      <Layout.Header>
+        <Menu theme="dark" mode="horizontal" style={{ float: "right"}}>
+          <Menu.Item key="1">
+            <a href="/logout">Logout</a>
+          </Menu.Item>
+        </Menu>
+      </Layout.Header>
       <Layout.Content style={{ padding: '0 50px' }}>
         <Upload.Dragger
           name="file"
@@ -48,13 +63,13 @@ export function App() {
           showUploadList={false}
           onChange={info => {
             if (info.file.status === 'done') {
-                const res = info.file.response;
-                const newFile:IFile = {
-                    id: res.id,
-                    name: res.filename,
-                    url: res.url
-                };
-                dispatch('add', newFile);
+              const res = info.file.response;
+              const newFile: IFile = {
+                id: res.id,
+                name: res.filename,
+                url: res.url
+              };
+              dispatch('add', newFile);
             }
           }}
         >
@@ -74,14 +89,26 @@ export function App() {
           className=""
           dataSource={files}
           renderItem={item => (
-            <List.Item actions={[
-              <Button icon='delete' shape='round' onClick={() => dispatch('remove', item)}>Remove</Button>
-            ]}>
+            <List.Item
+              actions={[
+                <Button
+                  icon="delete"
+                  shape="round"
+                  onClick={() => dispatch('remove', item)}
+                >
+                  Remove
+                </Button>
+              ]}
+            >
               <Skeleton avatar title={false} active loading={false}>
                 <List.Item.Meta
                   avatar={renderAvatar(item)}
                   title={
-                    <a href={item.url} target="_blank">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       {item.name}
                     </a>
                   }

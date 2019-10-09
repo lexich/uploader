@@ -1,7 +1,7 @@
 import express from 'express';
 import * as pug from 'pug';
 import * as path from 'path';
-import winston, { debug } from 'winston';
+import winston from 'winston';
 import expressWinston from 'express-winston';
 import session from 'express-session';
 import bodyParser from 'body-parser';
@@ -14,6 +14,7 @@ import { connect, initAdminUser } from './db';
 import { TypeormStore } from 'connect-typeorm/out';
 import { Connection } from 'typeorm';
 import { Session } from './entity/session';
+import { IAssetManifest } from '../interfaces';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -55,7 +56,8 @@ export function setupErrorHandlers(app: express.Express) {
   app.use(handlers.errorHandler);
 }
 
-export async function initApp(app = express()) {
+
+export async function initApp(manifest: IAssetManifest, app = express()) {
   const db = await connect(args.dbpath);
   await initAdminUser(db);
   setupMiddleware(app, db);
@@ -74,10 +76,10 @@ export async function initApp(app = express()) {
     expressFormat: true,
     colorize: false
   }));
-  app.use(apiRoutes(db));
+  app.use(apiRoutes(db, manifest));
   app.use(authRoutes());
   app.use('/media', express.static(args.upload));
-  app.use('/static', express.static(path.resolve(__dirname, '..', '..', 'dist')));
+  app.use('/static', express.static(path.resolve(__dirname, '..', '..', 'build', 'static')));
   app.use(expressWinston.errorLogger({
     transports: [
       args.isProduction ? new winston.transports.File({

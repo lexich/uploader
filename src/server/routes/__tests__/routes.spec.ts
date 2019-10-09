@@ -25,7 +25,9 @@ const PASSWORD_EMPTY = 'test_empty';
 function getAgent() {
   const app = express();
   setupMiddleware(app, db);
-  app.use(apiRoutes(db));
+  app.use(apiRoutes(db, {
+    files: {}, entrypoints: []
+  }));
   app.use(authRoutes());
   setupErrorHandlers(app);
   return request.agent(app);
