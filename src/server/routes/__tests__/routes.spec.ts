@@ -248,14 +248,15 @@ describe('route "/"', () => {
     const res = await agent.get('/').set('Cookie', cookie);
     expect(res.status).toBe(200);
     const $ = cheerio.load(res.text);
-    const script = $('script[init-dropzone]');
+    const script = $('script[data-files-json]');
     expect(script.length).toBe(1);
     const content = script.html();
     expect(content).toContain(
-      `var FILES = ${JSON.stringify([
+      `window.FILES = ${JSON.stringify([
         {
+          id: 1,
+          name: '1.txt',
           url: '/media/test/1.txt',
-          name: '1.txt'
         }
       ])}`
     );
