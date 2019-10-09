@@ -5,16 +5,17 @@ import winston from 'winston';
 import expressWinston from 'express-winston';
 import session from 'express-session';
 import bodyParser from 'body-parser';
-import { passport } from './passport';
 import args from './args';
 import * as handlers from './handlers';
-import authRoutes from './routes/auth';
 import apiRoutes from './routes/api';
 import { connect, initAdminUser } from './db';
 import { TypeormStore } from 'connect-typeorm/out';
 import { Connection } from 'typeorm';
 import { Session } from './entity/session';
 import { IAssetManifest } from '../interfaces';
+import initAuth from '../package/auth';
+import { UserRepositoryAuth } from './entity/user';
+import passport from 'passport';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -56,7 +57,6 @@ export function setupErrorHandlers(app: express.Express) {
   app.use(handlers.errorHandler);
 }
 
-
 export async function initApp(manifest: IAssetManifest, app = express()) {
   const db = await connect(args.dbpath);
   await initAdminUser(db);
@@ -77,7 +77,7 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
     colorize: false
   }));
   app.use(apiRoutes(db, manifest));
-  app.use(authRoutes());
+  app.use(initAuth(passport, new UserRepositoryAuth(db)));
   app.use('/media', express.static(args.upload));
   app.use('/static', express.static(path.resolve(__dirname, '..', '..', 'build', 'static')));
   app.use(expressWinston.errorLogger({

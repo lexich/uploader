@@ -3,10 +3,8 @@ import mkdirp from 'mkdirp';
 import * as path from 'path';
 import args from './args';
 import * as fs from 'fs';
-import { resolve } from 'bluebird';
-import { InvalidLoginError } from './errors';
+import { InvalidLoginError } from '../package/auth/data';
 import { User } from './entity/user';
-import { File } from './entity/file';
 
 export function getUser(req: Express.Request): User {
   if (!req.user) {

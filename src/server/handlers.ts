@@ -1,10 +1,9 @@
 import { NextFunction, Response, Request } from 'express-serve-static-core';
-import { InvalidLoginError } from './errors';
-
+import { InvalidLoginError } from '../package/auth/data'
 
 export function getCode(err: Error): number {
   if (err instanceof InvalidLoginError) {
-    return err.status;
+    return 401;
   }
   return 500;
 }
@@ -34,6 +33,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
+
   if (err instanceof InvalidLoginError) {
     return res.status(getCode(err)).render('login', {
       username: req.body.username,

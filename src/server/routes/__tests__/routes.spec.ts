@@ -2,7 +2,8 @@ import request from 'supertest';
 import express from 'express';
 import { mock } from '../../args';
 import apiRoutes from '../api';
-import authRoutes from '../auth';
+import authRoutes from '../../../package/auth';
+import passport from 'passport';
 import cheerio from 'cheerio';
 import * as path from 'path';
 import { isFileExist } from '../../storage';
@@ -11,7 +12,7 @@ import rimraf from 'rimraf';
 import * as os from 'os';
 import { Connection } from 'typeorm';
 import { connectHelper } from '../../db';
-import { User } from '../../entity/user';
+import { User, UserRepositoryAuth } from '../../entity/user';
 import { File, FileRepository } from '../../entity/file';
 
 let restore: () => void;
@@ -25,10 +26,13 @@ const PASSWORD_EMPTY = 'test_empty';
 function getAgent() {
   const app = express();
   setupMiddleware(app, db);
-  app.use(apiRoutes(db, {
-    files: {}, entrypoints: []
-  }));
-  app.use(authRoutes());
+  app.use(
+    apiRoutes(db, {
+      files: {},
+      entrypoints: []
+    })
+  );
+  app.use(authRoutes(passport, new UserRepositoryAuth(db)));
   setupErrorHandlers(app);
   return request.agent(app);
 }
@@ -40,7 +44,7 @@ beforeAll(async () => {
   db = res.db;
   drop = res.drop;
   restore = mock(args => {
-    args.dbpath = res.dbPath
+    args.dbpath = res.dbPath;
   });
   const user = new User();
   user.name = USERNAME;
@@ -135,7 +139,7 @@ describe('route "/login"', () => {
     const username = $('form input[name=username]');
     expect(username.val()).toBe('test1');
     const message = $('form .text-danger');
-    expect(message.text()).toBe('Invalid username or password');
+    expect(message.text()).toBe(`User with name=test1 and password=*** wasn't found`);
   });
 });
 
@@ -256,7 +260,7 @@ describe('route "/"', () => {
         {
           id: 1,
           name: '1.txt',
-          url: '/media/test/1.txt',
+          url: '/media/test/1.txt'
         }
       ])}`
     );
@@ -345,7 +349,7 @@ describe('route "/file-upload"', () => {
 
     const agent = getAgent();
     const { res } = await uploadFile(sourceFile, agent);
-    const {id: _, ...body} = res.body;
+    const { id: _, ...body } = res.body;
     expect(body).toEqual({
       filename: FILENAME,
       mimetype: 'text/plain',

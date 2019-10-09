@@ -6,15 +6,17 @@ import {
   Repository,
   EntityRepository,
   BeforeInsert,
-  ManyToOne,
   OneToMany,
+
+  Connection
 } from 'typeorm';
 import { createHmac } from 'crypto';
 import { Min, Max } from 'class-validator';
 import { File } from './file';
+import { IUser, IUserRepository, InvalidLoginError } from './../../package/auth/data';
 
 @Entity()
-export class User {
+export class User implements IUser {
   @PrimaryGeneratedColumn()
   id!: number;
 
@@ -59,6 +61,23 @@ export class UserRepository extends Repository<User> {
     return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.files', 'files')
       .where('user.name = :name', { name })
-      .getOne()
+      .getOne();
+  }
+}
+export class UserRepositoryAuth implements IUserRepository {
+  constructor(private db: Connection) {}
+  async findOne(id: number): Promise<IUser> {
+    const user = await this.db.getCustomRepository(UserRepository).findOne(id);
+    if (!user) {
+      return Promise.reject(new InvalidLoginError(`User with id=${id} wasn't found`));
+    }
+    return user as IUser;
+  }
+  async findUser(name: string, password: string): Promise<IUser> {
+    const user = await this.db.getCustomRepository(UserRepository).findUser(name, password);
+    if (!user) {
+      return Promise.reject(new InvalidLoginError(`User with name=${name} and password=*** wasn't found`));
+    }
+    return user as IUser;
   }
 }
