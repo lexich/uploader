@@ -5,6 +5,7 @@ import { IUser, IUserRepository } from '../data';
 import session from 'express-session';
 import passport from 'passport';
 import bodyParser from 'body-parser';
+import * as path from 'path';
 const USERNAME = 'test';
 const PASSWORD = 'pass';
 class User implements IUser {
@@ -31,7 +32,11 @@ class UserRepository implements IUserRepository {
 function getAgent() {
   const app = express();
   app.set('trust proxy', 1); // trust first proxy
-
+  app.set('views', path.join(__dirname, 'template'));
+  app.set('view engine', 'html');
+  app.engine('html', (path, opts, cb) => {
+    cb(null, path);
+  });
   app.use(
     session({
       secret: '1234',
@@ -74,7 +79,7 @@ async function login(
 
 describe('auth module', () => {
   beforeEach(() => {});
-  describe('/login', () => {
+  describe('POST /login', () => {
     test('valid data', async () => {
       const agent = getAgent();
       const { res } = await login(agent);
@@ -100,13 +105,47 @@ describe('auth module', () => {
     });
 
     test('invalid data', async () => {
-        const agent = getAgent();
-        const { res } = await login(agent, {
+      const agent = getAgent();
+      const { res } = await login(
+        agent,
+        {
           username: 'test1',
           password: 'test1'
-        }, true);
-        expect(res.status).toBe(401);
-        expect(res.text).toBe('{"error":"User not found"}')
-      });
+        },
+        true
+      );
+      expect(res.status).toBe(401);
+      expect(res.text).toBe('{"error":"User not found"}');
+    });
   });
+
+  describe('GET /login', () => {
+    test('test', async () => {
+      const agent = getAgent();
+      const res = await agent.get('/login');
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/auth\/login\.html$/);
+    })
+  });
+
+  describe('GET /logout', () => {
+    test('perform', async () => {
+      const agent = getAgent();
+      const { res, cookie } = await login(agent);
+      expect(res.status).toBe(302);
+      const data = await agent.get('/logout');
+      expect(data.status).toBe(302);
+      expect(data.header.location).toBe('/login')
+    });
+
+    test('perform xhr', async () => {
+      const agent = getAgent();
+      const { res } = await login(agent);
+      expect(res.status).toBe(302);
+      const data = await agent.get('/logout').set('X-Requested-With', 'XMLHttpRequest');
+      expect(data.status).toBe(200);
+      expect(data.text).toBe('{"success":true}');
+    });
+  });
+
 });

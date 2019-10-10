@@ -1,8 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { PassportStatic } from 'passport';
 import { init } from './passport';
 import { IUserRepository } from './data';
-export function route(router: Router = Router(), pass: PassportStatic) {
+export function route(pass: PassportStatic, router: Router = Router()) {
   const authenticate = pass.authenticate('local', {
     successRedirect: '/',
     failureRedirect: '/login'
@@ -23,11 +23,14 @@ export function route(router: Router = Router(), pass: PassportStatic) {
     });
   });
   router.get('/login', (_, res) => {
-    res.render('login');
+    res.render('auth/login');
   });
 
   router.get('/logout', (req, res) => {
     req.logout();
+    if (req.xhr) {
+      return res.json({ success: true }).end();
+    }
     res.redirect('/login');
   });
   return router;
@@ -39,5 +42,5 @@ export default function(
   router: Router = Router()
 ) {
   const pass = init(rep, passport);
-  return route(router, pass);
+  return route(pass, router);
 }
