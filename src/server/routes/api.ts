@@ -21,7 +21,7 @@ export default (db: Connection, manifest: IAssetManifest, router = Router()) => 
     }
   });
 
-  router.get('/:user/files', async (req, res, next) => {
+  router.get('/:user/files', requireAuth(), async (req, res, next) => {
     try {
       const user = getUser(req);
       if (user.name !== req.params.user) {

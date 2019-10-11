@@ -151,12 +151,12 @@ describe('route "/files"', () => {
     const res = await getAgent()
       .get('/test/files')
       .set('X-Requested-With', 'XMLHttpRequest');
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(400);
   });
 
   test('GET without auth', async () => {
     const res = await getAgent().get('/test/files');
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(400);
   });
 
   test('GET xhr with auth without content', async () => {
