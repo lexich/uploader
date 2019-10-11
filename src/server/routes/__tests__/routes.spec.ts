@@ -32,15 +32,16 @@ function getAgent() {
       entrypoints: []
     })
   );
+
   app.use(authRoutes(passport, {
-    repository: new UserRepositoryAuth(db)
+    repository: new UserRepositoryAuth(db), secretOrKey: 'secret'
   }));
   setupErrorHandlers(app);
   return request.agent(app);
 }
 
 beforeAll(async () => {
-  const res = await connectHelper('routes.test', {
+  const res = await connectHelper(`routes.${new Date().valueOf()}.test`, {
     logging: false
   });
   db = res.db;

@@ -35,10 +35,17 @@ export function errorHandler(
 ) {
 
   if (err instanceof InvalidLoginError) {
-    return res.status(getCode(err)).render('login', {
-      username: req.body.username,
-      error: getErrorMessage(err)
-    });
+    if (req.xhr) {
+      return res.status(getCode(err)).render('login', {
+        username: req.body.username,
+        error: getErrorMessage(err)
+      });
+    } else {
+      return res.status(getCode(err)).render('auth/login', {
+        username: req.body.username,
+        error: getErrorMessage(err)
+      });
+    }
   }
   res.status(getCode(err)).render('error', { error: getErrorMessage(err) });
 }

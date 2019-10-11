@@ -5,7 +5,7 @@ import winston from 'winston';
 import expressWinston from 'express-winston';
 import session from 'express-session';
 import bodyParser from 'body-parser';
-import args from './args';
+import cookieParser from 'cookie-parser';
 import * as handlers from './handlers';
 import apiRoutes from './routes/api';
 import { connect, initAdminUser } from './db';
@@ -16,6 +16,7 @@ import { IAssetManifest } from '../interfaces';
 import initAuth from '../package/auth';
 import { UserRepositoryAuth } from './entity/user';
 import passport from 'passport';
+import ARGS from './args';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -26,7 +27,7 @@ export function setupMiddleware(app: express.Express, db: Connection, opts?: IMi
   const mockSessionOpts = (opts ? opts.mockSessionOpts : null) || ((opts: session.SessionOptions) => opts)
   app.use(
     session(mockSessionOpts({
-      secret: args.secret,
+      secret: ARGS.secret,
       resave: true,
       saveUninitialized: true,
       cookie: { maxAge: 12 * 60 * 3600 },
@@ -46,7 +47,7 @@ export function setupMiddleware(app: express.Express, db: Connection, opts?: IMi
       extended: true
     })
   );
-
+  app.use(cookieParser(ARGS.secret));
   app.engine('html', (pug as any).__express as any);
   app.set('views', path.resolve(__dirname, '..', '..', 'views'));
   app.set('view engine', 'pug');
@@ -58,14 +59,14 @@ export function setupErrorHandlers(app: express.Express) {
 }
 
 export async function initApp(manifest: IAssetManifest, app = express()) {
-  const db = await connect(args.dbpath);
+  const db = await connect(ARGS.dbpath);
   await initAdminUser(db);
   setupMiddleware(app, db);
   app.use(expressWinston.logger({
     transports: [
-      args.isProduction ? new winston.transports.File({
-        filename: args.logfilename,
-        dirname: args.logdir
+      ARGS.isProduction ? new winston.transports.File({
+        filename: ARGS.logfilename,
+        dirname: ARGS.logdir
       }) :
       new winston.transports.Console()
     ],
@@ -77,14 +78,17 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
     colorize: false
   }));
   app.use(apiRoutes(db, manifest));
-  app.use(initAuth(passport, new UserRepositoryAuth(db)));
-  app.use('/media', express.static(args.upload));
+  app.use(initAuth(passport, {
+    repository: new UserRepositoryAuth(db),
+    secretOrKey: ARGS.secret
+  }));
+  app.use('/media', express.static(ARGS.upload));
   app.use('/static', express.static(path.resolve(__dirname, '..', '..', 'build', 'static')));
   app.use(expressWinston.errorLogger({
     transports: [
-      args.isProduction ? new winston.transports.File({
-        filename: args.logfilename,
-        dirname: args.logdir
+      ARGS.isProduction ? new winston.transports.File({
+        filename: ARGS.logfilename,
+        dirname: ARGS.logdir
       }) :
       new winston.transports.Console()
     ],
@@ -95,5 +99,5 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
     )
   }));
   setupErrorHandlers(app);
-  app.listen(args.PORT);
+  app.listen(ARGS.PORT);
 }

@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { PassportStatic } from 'passport';
+import passport, { PassportStatic } from 'passport';
 import { init } from './passport';
 import { IUserRepository, InvalidLoginError, IUser } from './data';
 import jwt from 'jsonwebtoken';
@@ -69,11 +69,11 @@ export interface IOption extends IRouteOption {
   repository: IUserRepository;
 }
 
-export function requireAuth(passport: PassportStatic) {
-  return passport.authenticate('jwt-cookiecombo', { session: false })
+export function requireAuth(pass: PassportStatic = passport) {
+  return pass.authenticate('jwt-cookiecombo', { session: false })
 }
 
-export default function(passport: PassportStatic, opt: IOption) {
-  const pass = init(opt.repository, opt.secretOrKey, passport);
-  return route(pass, opt);
+export default function(pass: PassportStatic, opt: IOption) {
+  const p = init(opt.repository, opt.secretOrKey, pass);
+  return route(p, opt);
 }

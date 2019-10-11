@@ -34,7 +34,7 @@ export async function initAdminUser(db: Connection) {
 }
 
 export function connectHelper(name: string, connectionOptions?: Partial<SqliteConnectionOptions>) {
-  const dbPath = path.join(__dirname, '..', '..', 'db', name + '.db');
+  const dbPath = name === ':memory:' ? name : path.join(__dirname, '..', '..', 'db', name + '.db');
   return connect(dbPath, connectionOptions).then(db => {
     return {
       db,
@@ -42,7 +42,9 @@ export function connectHelper(name: string, connectionOptions?: Partial<SqliteCo
       async drop() {
         await db.dropDatabase();
         await db.close();
-        await new Promise(resolve => fs.unlink(dbPath, () => resolve()));
+        if (dbPath !== ':memory:') {
+          await new Promise(resolve => fs.unlink(dbPath, () => resolve()));
+        }
       }
     };
   });

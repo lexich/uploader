@@ -8,7 +8,7 @@ import * as path from 'path';
 let db: Connection;
 let drop: () => Promise<void>;
 beforeAll(async () => {
-    const res = await connectHelper(path.join('user.test'));
+    const res = await connectHelper(path.join(`user.${new Date().valueOf()}.test`));
     db = res.db;
     drop = res.drop;
 });

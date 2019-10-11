@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { ensureLoggedIn } from 'connect-ensure-login';
 import storage, { getUser } from '../storage';
 import { File, FileRepository } from '../entity/file';
 import { NotFound } from '../errors';
@@ -7,11 +6,12 @@ import { Connection } from 'typeorm';
 import ARGS from '../args';
 import * as fs from 'fs';
 import { IAssetManifest } from '../../interfaces';
+import { requireAuth } from '../../package/auth/index'
 
 export default (db: Connection, manifest: IAssetManifest, router = Router()) => {
   const fileRepository = db.getCustomRepository(FileRepository);
 
-  router.get('/', ensureLoggedIn(), async (req, res, next) => {
+  router.get('/', requireAuth(), async (req, res, next) => {
     try {
       const user = getUser(req);
       const files = await fileRepository.findAllByUser(user);
@@ -42,7 +42,7 @@ export default (db: Connection, manifest: IAssetManifest, router = Router()) => 
     }
   });
 
-  router.post('/file-upload', ensureLoggedIn(), storage.single('file'), async (req, res) => {
+  router.post('/file-upload', requireAuth(), storage.single('file'), async (req, res) => {
     const { size, filename, mimetype } = req.file;
     const user = getUser(req);
     const file = new File();
@@ -54,7 +54,7 @@ export default (db: Connection, manifest: IAssetManifest, router = Router()) => 
     }).end();
   });
 
-  router.delete('/file-remove', ensureLoggedIn(), async (req, res, next) => {
+  router.delete('/file-remove', requireAuth(), async (req, res, next) => {
     const user = getUser(req);
     const { fileid } = req.query;
     if (!fileid) {
