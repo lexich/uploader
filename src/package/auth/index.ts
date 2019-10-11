@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { PassportStatic } from 'passport';
 import { init } from './passport';
 import { IUserRepository, InvalidLoginError, IUser } from './data';
@@ -9,6 +9,28 @@ export interface IRouteOption {
   redirectSuccess?: string;
   redirectFail?: string;
   router?: Router;
+}
+
+export function login(user: IUser, opts: IRouteOption, req: Request, res: Response, next: NextFunction) {
+  req.login(user, { session: false }, err => {
+    if (err) {
+      return next(err);
+    }
+    const meta: IUser = { id: user.id };
+    const token = jwt.sign(meta, opts.secretOrKey);
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      secure: true
+    });
+
+    if (req.xhr) {
+      return res.json({ user, token });
+    } else {
+      return res.redirect(opts.redirectSuccess || '/');
+    }
+  });
 }
 
 export function route(pass: PassportStatic, opts: IRouteOption) {
@@ -24,25 +46,7 @@ export function route(pass: PassportStatic, opts: IRouteOption) {
         if (!user) {
           return next(new InvalidLoginError('User not found'));
         }
-        req.login(user, { session: false }, err => {
-          if (err) {
-            return next(err);
-          }
-          const meta: IUser = { id: user.id };
-          const token = jwt.sign(meta, opts.secretOrKey);
-          res.cookie('jwt', token, {
-            httpOnly: true,
-            sameSite: true,
-            signed: true,
-            secure: true
-          });
-
-          if (req.xhr) {
-            return res.json({ user, token });
-          } else {
-            return res.redirect(opts.redirectSuccess || '/');
-          }
-        });
+        return login(user, opts, req, res, next);
       }
     );
     return authenticate(req, res);
