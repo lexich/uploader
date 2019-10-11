@@ -32,7 +32,9 @@ function getAgent() {
       entrypoints: []
     })
   );
-  app.use(authRoutes(passport, new UserRepositoryAuth(db)));
+  app.use(authRoutes(passport, {
+    repository: new UserRepositoryAuth(db)
+  }));
   setupErrorHandlers(app);
   return request.agent(app);
 }

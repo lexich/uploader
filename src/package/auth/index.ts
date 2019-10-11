@@ -1,26 +1,51 @@
 import { Router } from 'express';
 import { PassportStatic } from 'passport';
 import { init } from './passport';
-import { IUserRepository } from './data';
-export function route(pass: PassportStatic, router: Router = Router()) {
-  const authenticate = pass.authenticate('local', {
-    successRedirect: '/',
-    failureRedirect: '/login'
-  });
-  const authenticateXhr = pass.authenticate('local');
+import { IUserRepository, InvalidLoginError, IUser } from './data';
+import jwt from 'jsonwebtoken';
+
+export interface IRouteOption {
+  secretOrKey: string | Buffer;
+  redirectSuccess?: string;
+  redirectFail?: string;
+  router?: Router;
+}
+
+export function route(pass: PassportStatic, opts: IRouteOption) {
+  const router = opts.router || Router();
   router.post('/login', (req, res, next) => {
-    const fn = req.xhr ? authenticateXhr : authenticate;
-    return fn(req, res, (err: any) => {
-      if (req.xhr) {
+    const authenticate = pass.authenticate(
+      'local',
+      { session: false },
+      (err: Error, user: IUser) => {
         if (err) {
-          res.status(401).json({ error: err.message })
-        } else {
-          res.json({ success: true }).end();
+          return next(err);
         }
-      } else {
-        next(err);
+        if (!user) {
+          return next(new InvalidLoginError('User not found'));
+        }
+        req.login(user, { session: false }, err => {
+          if (err) {
+            return next(err);
+          }
+          const meta: IUser = { id: user.id };
+          const token = jwt.sign(meta, opts.secretOrKey);
+          res.cookie('jwt', token, {
+            httpOnly: true,
+            sameSite: true,
+            signed: true,
+            secure: true
+          });
+
+          if (req.xhr) {
+            return res.json({ user, token });
+          } else {
+            return res.redirect(opts.redirectSuccess || '/');
+          }
+        });
       }
-    });
+    );
+    return authenticate(req, res);
   });
   router.get('/login', (_, res) => {
     res.render('auth/login');
@@ -36,11 +61,15 @@ export function route(pass: PassportStatic, router: Router = Router()) {
   return router;
 }
 
-export default function(
-  passport: PassportStatic,
-  rep: IUserRepository,
-  router: Router = Router()
-) {
-  const pass = init(rep, passport);
-  return route(pass, router);
+export interface IOption extends IRouteOption {
+  repository: IUserRepository;
+}
+
+export function requireAuth(passport: PassportStatic) {
+  return passport.authenticate('jwt-cookiecombo', { session: false })
+}
+
+export default function(passport: PassportStatic, opt: IOption) {
+  const pass = init(opt.repository, opt.secretOrKey, passport);
+  return route(pass, opt);
 }

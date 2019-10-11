@@ -1,8 +1,14 @@
-import { PassportStatic } from 'passport';
+import passport, { PassportStatic } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
+import { Strategy as JwtStrategy } from './passport-jwt-cookiecombo';
+
 import { IUser, IUserRepository, InvalidLoginError } from './data';
 
-export function init(rep: IUserRepository, pass: PassportStatic) {
+export function init(
+  rep: IUserRepository,
+  secretOrKey: string | Buffer,
+  pass: PassportStatic
+) {
   pass.serializeUser((user: IUser, done) => {
     done(null, user.id);
   });
@@ -22,5 +28,20 @@ export function init(rep: IUserRepository, pass: PassportStatic) {
         .catch(err => done(err, false));
     })
   );
+
+  passport.use(
+    new JwtStrategy<IUser>(
+      { secretOrPublicKey: secretOrKey },
+      async (payload: IUser, done: any) => {
+        try {
+          const user = await rep.findOne(payload.id);
+          done(null, user);
+        } catch (err) {
+          done(err, false);
+        }
+      }
+    )
+  );
+
   return pass;
 }
