@@ -1,19 +1,20 @@
 import request from 'supertest';
 import express from 'express';
-import { mock } from '../../args';
-import apiRoutes from '../api';
-import authRoutes from '../../../package/auth';
+import ARGS, { mock } from '../../args';
+
+import { AuthModule } from '../../../package/auth';
 import passport from 'passport';
 import cheerio from 'cheerio';
 import * as path from 'path';
-import { isFileExist } from '../../storage';
+import { FilesModule } from '../../../package/files';
+import { isFileExist } from '../../../package/files/storage';
 import { setupMiddleware, setupErrorHandlers } from '../../app';
 import rimraf from 'rimraf';
 import * as os from 'os';
 import { Connection } from 'typeorm';
 import { connectHelper } from '../../db';
-import { User, UserRepositoryAuth } from '../../entity/user';
-import { File, FileRepository } from '../../entity/file';
+import { User, UserRepositoryAuth, getUser } from '../../entity/user';
+import { File, FileRepository, FileRepositoryImpl } from '../../entity/file';
 
 let restore: () => void;
 let db: Connection;
@@ -26,16 +27,30 @@ const PASSWORD_EMPTY = 'test_empty';
 function getAgent() {
   const app = express();
   setupMiddleware(app, db);
-  app.use(
-    apiRoutes(db, {
+
+  const filesModule = new FilesModule(new FileRepositoryImpl(db), {
+    uploadDir: ARGS.upload,
+    requireAuth: AuthModule.requireAuth,
+    manifest: {
       files: {},
       entrypoints: []
-    })
-  );
+    },
+    userActor: {
+      getUser,
+      get(user, field) {
+        return user[field];
+      }
+    }
+  });
 
-  app.use(authRoutes(passport, {
-    repository: new UserRepositoryAuth(db), secretOrKey: 'secret'
-  }));
+  const authModule = new AuthModule(passport, {
+    repository: new UserRepositoryAuth(db),
+    secretOrKey: 'secret',
+    redirectFail: '/login'
+  });
+
+  app.use(authModule.init());
+  app.use(filesModule.init());
   setupErrorHandlers(app);
   return request.agent(app);
 }
@@ -103,7 +118,7 @@ async function uploadFile(sourceFile: string, agent = getAgent()) {
     .post('/file-upload')
     .set('Cookie', cookie)
     .attach('file', sourceFile);
-  return { res, cookie };
+  return { res, cookie: (res as any).headers['set-cookie'] };
 }
 
 describe('route "/login"', () => {
@@ -142,7 +157,9 @@ describe('route "/login"', () => {
     const username = $('form input[name=username]');
     expect(username.val()).toBe('test1');
     const message = $('form .text-danger');
-    expect(message.text()).toBe(`User with name=test1 and password=*** wasn't found`);
+    expect(message.text()).toBe(
+      `User with name=test1 and password=*** wasn't found`
+    );
   });
 });
 
@@ -151,12 +168,17 @@ describe('route "/files"', () => {
     const res = await getAgent()
       .get('/test/files')
       .set('X-Requested-With', 'XMLHttpRequest');
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
+  });
+
+  test('GET without auth', async () => {
+    const res = await getAgent().get('/test/files').set('X-Requested-With', 'XMLHttpRequest');
+    expect(res.status).toBe(401);
   });
 
   test('GET without auth', async () => {
     const res = await getAgent().get('/test/files');
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
   });
 
   test('GET xhr with auth without content', async () => {
@@ -240,7 +262,7 @@ describe('route "/files"', () => {
 });
 
 describe('route "/"', () => {
-  test('GET without auth shoud redirect to login page', async () => {
+  test('GET without auth should redirect to login page', async () => {
     const res = await getAgent().get('/');
     expect(res.redirect).toBeTruthy();
     expect(res.header.location).toBe('/login');
@@ -316,7 +338,7 @@ describe('route "/file-remove"', () => {
     const { url, id } = res.body;
     expect(url).toBe(`/media/${USERNAME}/1.txt`);
     const res2 = await agent
-      .delete(`/file-remove?fileid=${id}`)
+      .post(`/file-remove?fileid=${id}`)
       .set('Cookie', cookie);
     expect(res2.status).toBe(200);
     const fileRepository = db.getCustomRepository(FileRepository);

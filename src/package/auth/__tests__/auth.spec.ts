@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
-import init, { requireAuth } from '../index';
-import { IUser, IUserRepository, InvalidLoginError } from '../data';
+import { AuthModule } from '../index';
+import { IUserRepository, InvalidLoginError } from '../data';
 import session from 'express-session';
 import passport from 'passport';
 import bodyParser from 'body-parser';
@@ -10,20 +10,26 @@ import * as path from 'path';
 const USERNAME = 'test';
 const PASSWORD = 'pass';
 const SECRET = 'secret';
-class User implements IUser {
+class User {
   constructor(public id: number, public name: string, public pass: string) {}
 }
 
-class UserRepository implements IUserRepository {
+class UserRepository implements IUserRepository<User> {
+  create(id: number): User {
+    return new User(id, `test_${id}`, 'test');
+  }
+  toPlainObject(user: User) {
+    return { id: user.id, name: user.name };
+  }
   private user = new User(1, USERNAME, PASSWORD);
 
-  async findOne(id: number): Promise<IUser> {
+  async findOne(id: number): Promise<User> {
     if (this.user.id === id) {
       return this.user;
     }
     throw new Error('User not found');
   }
-  async findUser(name: string, password: string): Promise<IUser> {
+  async findUser(name: string, password: string): Promise<User> {
     if (this.user.name === name && this.user.pass === password) {
       return this.user;
     }
@@ -55,16 +61,15 @@ function getAgent(app = express()) {
     })
   );
   app.use(cookieParser(SECRET));
-  app.use(
-    init(passport, {
-      repository: new UserRepository(),
-      secretOrKey: SECRET,
-      redirectSuccess: '/success',
-      redirectFail: '/fail'
-    })
-  );
+  const authModule = new AuthModule(passport, {
+    repository: new UserRepository(),
+    secretOrKey: SECRET,
+    redirectSuccess: '/success',
+    redirectFail: '/fail'
+  });
+  app.use(authModule.init());
 
-  app.get('/test', requireAuth(passport), (_req, res) => {
+  app.get('/test', AuthModule.requireAuth(passport), (_req, res) => {
     return res.json({ success: true });
   });
 
@@ -148,7 +153,7 @@ describe('auth module', () => {
     test('invalid acesss', async () => {
       const agent = getAgent();
       const data = await agent.get('/test');
-      expect(data.status).toBe(400);
+      expect(data.status).toBe(302);
     });
     test('cookie jwt', async () => {
       const agent = getAgent();
@@ -187,7 +192,7 @@ describe('auth module', () => {
       expect(logoutData.header.location).toBe('/login');
 
       const testFail2 = await agent.get('/test').set('Cookie', cookie);
-      expect(testFail2.status).toBe(400);
+      expect(testFail2.status).toBe(302);
     });
 
     test('perform xhr', async () => {
@@ -204,7 +209,7 @@ describe('auth module', () => {
       expect(data.text).toBe('{"success":true}');
 
       const testFail2 = await agent.get('/test').set('Cookie', cookie);
-      expect(testFail2.status).toBe(400);
+      expect(testFail2.status).toBe(302);
     });
   });
 });

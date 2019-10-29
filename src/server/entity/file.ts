@@ -4,9 +4,12 @@ import {
   Column,
   ManyToOne,
   EntityRepository,
-  Repository
+  Repository,
+  Connection
 } from 'typeorm';
 import { User } from './user';
+
+import { IFileRepository } from '../../package/files/interfaces';
 
 @Entity()
 export class File {
@@ -49,5 +52,35 @@ export class FileRepository extends Repository<File> {
   async removeByIdAndUser(id: number, user: User) {
     return this.delete({ id, user });
   }
+}
 
+export class FileRepositoryImpl implements IFileRepository<User, File> {
+
+  private fileRepository = this.db.getCustomRepository(FileRepository);
+  constructor(private db: Connection) {}
+
+  async removeByIdAndUser(fileid: number, user: User): Promise<void> {
+    await this.fileRepository.removeByIdAndUser(fileid, user);
+  }
+  findOneOrFail(fileid: number): Promise<File> {
+    return this.fileRepository.findOneOrFail(fileid);
+  }
+  toJSON(file: File) {
+    return file.toJSON();
+  }
+
+  createFile(name: string, user: User): File {
+    const file = new File();
+    file.name = name;
+    file.user = user;
+    return file;
+  }
+
+  async save(file: File): Promise<void> {
+    await this.db.manager.save(file);
+  }
+
+  findAllByUser(user: User): Promise<File[]> {
+    return this.fileRepository.findAllByUser(user);
+  }
 }

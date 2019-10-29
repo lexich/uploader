@@ -7,16 +7,15 @@ import {
   EntityRepository,
   BeforeInsert,
   OneToMany,
-
   Connection
 } from 'typeorm';
 import { createHmac } from 'crypto';
 import { Min, Max } from 'class-validator';
 import { File } from './file';
-import { IUser, IUserRepository, InvalidLoginError } from './../../package/auth/data';
+import { IUserRepository, InvalidLoginError } from './../../package/auth/data';
 
 @Entity()
-export class User implements IUser {
+export class User {
   @PrimaryGeneratedColumn()
   id!: number;
 
@@ -64,20 +63,45 @@ export class UserRepository extends Repository<User> {
       .getOne();
   }
 }
-export class UserRepositoryAuth implements IUserRepository {
+export class UserRepositoryAuth implements IUserRepository<User> {
+  create(id?: number): User {
+    const user = new User;
+    if (id !== undefined) {
+      user.id = id;
+    }
+    return user;
+  }
+  toPlainObject(user: User) {
+    return { id: user.id, name: user.name };
+  }
   constructor(private db: Connection) {}
-  async findOne(id: number): Promise<IUser> {
+  async findOne(id: number): Promise<User> {
     const user = await this.db.getCustomRepository(UserRepository).findOne(id);
     if (!user) {
-      return Promise.reject(new InvalidLoginError(`User with id=${id} wasn't found`));
+      return Promise.reject(
+        new InvalidLoginError(`User with id=${id} wasn't found`)
+      );
     }
-    return user as IUser;
+    return user;
   }
-  async findUser(name: string, password: string): Promise<IUser> {
-    const user = await this.db.getCustomRepository(UserRepository).findUser(name, password);
+  async findUser(name: string, password: string): Promise<User> {
+    const user = await this.db
+      .getCustomRepository(UserRepository)
+      .findUser(name, password);
     if (!user) {
-      return Promise.reject(new InvalidLoginError(`User with name=${name} and password=*** wasn't found`));
+      return Promise.reject(
+        new InvalidLoginError(
+          `User with name=${name} and password=*** wasn't found`
+        )
+      );
     }
-    return user as IUser;
+    return user;
   }
+}
+
+export function getUser(req: Express.Request): User {
+  if (!req.user) {
+    throw new InvalidLoginError('Not authorize access');
+  }
+  return req.user as User;
 }

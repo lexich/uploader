@@ -7,16 +7,17 @@ import session from 'express-session';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import * as handlers from './handlers';
-import apiRoutes from './routes/api';
 import { connect, initAdminUser } from './db';
 import { TypeormStore } from 'connect-typeorm/out';
 import { Connection } from 'typeorm';
 import { Session } from './entity/session';
 import { IAssetManifest } from '../interfaces';
-import initAuth from '../package/auth';
-import { UserRepositoryAuth } from './entity/user';
+import { AuthModule } from '../package/auth';
+import { FilesModule } from '../package/files';
+import { UserRepositoryAuth, User } from './entity/user';
 import passport from 'passport';
 import ARGS from './args';
+import { File, FileRepositoryImpl } from './entity/file';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -28,8 +29,8 @@ export function setupMiddleware(app: express.Express, db: Connection, opts?: IMi
   app.use(
     session(mockSessionOpts({
       secret: ARGS.secret,
-      resave: true,
-      saveUninitialized: true,
+      resave: false,
+      saveUninitialized: false,
       cookie: { maxAge: 12 * 60 * 3600 },
       store: new TypeormStore({
         cleanupLimit: 2,
@@ -77,11 +78,33 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
     expressFormat: true,
     colorize: false
   }));
-  app.use(apiRoutes(db, manifest));
-  app.use(initAuth(passport, {
-    repository: new UserRepositoryAuth(db),
-    secretOrKey: ARGS.secret
-  }));
+
+  const authModule = new AuthModule<User>(passport, {
+    secretOrKey: ARGS.secret,
+    repository: new UserRepositoryAuth(db)
+  });
+  app.use(authModule.init())
+  const filesModule = new FilesModule<User, File>(
+    new FileRepositoryImpl(db),
+    {
+      uploadDir: ARGS.upload,
+      requireAuth: AuthModule.requireAuth,
+      manifest: {
+        files: {},
+        entrypoints: []
+      },
+      userActor: {
+        getUser(req) {
+          return req.user as User;
+        },
+        get(user, field) {
+          return user[field];
+        }
+      }
+    }
+  )
+  app.use(filesModule.init());
+
   app.use('/media', express.static(ARGS.upload));
   app.use('/static', express.static(path.resolve(__dirname, '..', '..', 'build', 'static')));
   app.use(expressWinston.errorLogger({

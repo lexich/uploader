@@ -1,79 +1,109 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport, { PassportStatic } from 'passport';
-import { init } from './passport';
-import { IUserRepository, InvalidLoginError, IUser } from './data';
+import { PassportService } from './passport';
+import { IUserRepository, InvalidLoginError } from './data';
 import jwt from 'jsonwebtoken';
 
-export interface IRouteOption {
+export interface IOption<TUser extends { id: number }> {
   secretOrKey: string | Buffer;
   redirectSuccess?: string;
   redirectFail?: string;
-  router?: Router;
+  repository: IUserRepository<TUser>;
 }
 
-export function login(user: IUser, opts: IRouteOption, req: Request, res: Response, next: NextFunction) {
-  req.login(user, { session: false }, err => {
-    if (err) {
-      return next(err);
-    }
-    const meta: IUser = { id: user.id };
-    const token = jwt.sign(meta, opts.secretOrKey);
-    res.cookie('jwt', token, {
-      httpOnly: true,
-      sameSite: true,
-      signed: true,
-      secure: true
-    });
-
-    if (req.xhr) {
-      return res.json({ user, token });
-    } else {
-      return res.redirect(opts.redirectSuccess || '/');
-    }
-  });
-}
-
-export function route(pass: PassportStatic, opts: IRouteOption) {
-  const router = opts.router || Router();
-  router.post('/login', (req, res, next) => {
-    const authenticate = pass.authenticate(
-      'local',
-      { session: false },
-      (err: Error, user: IUser) => {
+export class AuthModule<TUser extends { id: number }> {
+  static requireAuth(pass: PassportStatic = passport) {
+    return function(req: Request, res: Response, next: any) {
+      const fn = pass.authenticate('jwt', { session: false }, (err, user, info) => {
         if (err) {
           return next(err);
         }
         if (!user) {
-          return next(new InvalidLoginError('User not found'));
+          if (req.xhr) {
+            return next(info);
+          } else {
+            return res.redirect('/login')
+          }
         }
-        return login(user, opts, req, res, next);
-      }
-    );
-    return authenticate(req, res);
-  });
-  router.get('/login', (_, res) => {
-    res.render('auth/login');
-  });
-
-  router.get('/logout', (req, res) => {
-    req.logout();
-    if (req.xhr) {
-      return res.json({ success: true }).end();
+        req.logIn(user, (err) => {
+          if (err) {
+            return next(err);
+          }
+          next();
+        })
+      });
+      return fn(req, res, next);
     }
-    res.redirect('/login');
-  });
-  return router;
-}
+  }
 
-export interface IOption extends IRouteOption {
-  repository: IUserRepository;
-}
+  static login<TUser extends { id: number }>(
+    user: TUser,
+    opts: IOption<TUser>,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    req.login(user, { session: false }, err => {
+      if (err) {
+        return next(err);
+      }
+      const meta: TUser = opts.repository.create(user.id);
+      const payload = opts.repository.toPlainObject(meta);
+      const token = jwt.sign(payload, opts.secretOrKey);
+      res.cookie('jwt', token, {
+        httpOnly: true,
+        sameSite: true,
+        signed: true,
+        secure: true
+      });
 
-export function requireAuth(pass: PassportStatic = passport) {
-  return pass.authenticate('jwt-cookiecombo', { session: false })
-}
+      if (req.xhr) {
+        return res.json({ user, token });
+      } else {
+        return res.redirect(opts.redirectSuccess || '/');
+      }
+    });
+  }
 
-export default function(pass: PassportStatic, opt: IOption) {
-  const p = init(opt.repository, opt.secretOrKey, pass);
-  return route(p, opt);
+  constructor(
+    private passport: PassportStatic,
+    private opts: IOption<TUser>,
+    private passportSrv = new PassportService<TUser>(opts.repository, passport)
+  ) {}
+
+  init(router = Router()) {
+    router.post('/login', (req, res, next) => {
+      const authenticate = this.passport.authenticate(
+        'local',
+        { session: false },
+        (err: Error, user: TUser) => {
+          if (err) {
+            return next(err);
+          }
+          if (!user) {
+            return next(new InvalidLoginError('User not found'));
+          }
+          return AuthModule.login(user, this.opts, req, res, next);
+        }
+      );
+      return authenticate(req, res);
+    });
+
+    router.get('/login', (_, res) => {
+      res.render('auth/login');
+    });
+
+    router.get('/logout', (req, res) => {
+      req.logout();
+      if (req.xhr) {
+        return res.json({ success: true }).end();
+      }
+      res.redirect('/login');
+    });
+
+    this.passportSrv.init();
+    this.passportSrv.addJWTStrategy(this.opts.secretOrKey, this.opts.redirectFail);
+
+    return router;
+  }
 }

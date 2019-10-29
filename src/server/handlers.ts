@@ -5,13 +5,16 @@ export function getCode(err: Error): number {
   if (err instanceof InvalidLoginError) {
     return 401;
   }
+  if (err.message === 'No auth token') {
+    return 401;
+  }
   return 500;
 }
 export function getErrorMessage(err: Error): string {
   if (err instanceof InvalidLoginError) {
     return err.message;
   }
-  return 'Something failed';
+  return err.message || 'Something failed';
 }
 
 export function clientErrorHandler(

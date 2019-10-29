@@ -1,10 +1,9 @@
-export interface IUser {
-    id: number;
-}
 
-export interface IUserRepository {
-    findOne(id: number): Promise<IUser>;
-    findUser(name: string, password: string): Promise<IUser>;
+export interface IUserRepository<TUser extends { id: number }> {
+    create(id?: number): TUser;
+    toPlainObject(user: TUser): Object;
+    findOne(id: number): Promise<TUser>;
+    findUser(name: string, password: string): Promise<TUser>;
 }
 
 export class InvalidLoginError extends Error {
