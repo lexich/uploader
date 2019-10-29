@@ -89,10 +89,7 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
     {
       uploadDir: ARGS.upload,
       requireAuth: AuthModule.requireAuth,
-      manifest: {
-        files: {},
-        entrypoints: []
-      },
+      manifest,
       userActor: {
         getUser(req) {
           return req.user as User;

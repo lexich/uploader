@@ -54,7 +54,7 @@ export class AuthModule<TUser extends { id: number }> {
         httpOnly: true,
         sameSite: true,
         signed: true,
-        secure: true
+        secure: req.secure
       });
 
       if (req.xhr) {
@@ -94,6 +94,7 @@ export class AuthModule<TUser extends { id: number }> {
     });
 
     router.get('/logout', (req, res) => {
+      res.clearCookie('jwt');
       req.logout();
       if (req.xhr) {
         return res.json({ success: true }).end();

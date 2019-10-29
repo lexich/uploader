@@ -111,7 +111,7 @@ describe('auth module', () => {
       expect(index).not.toBe(-1);
       expect(chunks[index + 1]).toBe(' Path=/');
       expect(chunks[index + 2]).toBe(' HttpOnly');
-      expect(chunks[index + 3]).toBe(' Secure');
+
     });
 
     test('valid data xhr', async () => {
@@ -127,7 +127,6 @@ describe('auth module', () => {
       expect(index).not.toBe(-1);
       expect(chunks[index + 1]).toBe(' Path=/');
       expect(chunks[index + 2]).toBe(' HttpOnly');
-      expect(chunks[index + 3]).toBe(' Secure');
     });
 
     test('invalid data', async () => {
