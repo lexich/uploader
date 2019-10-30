@@ -13,8 +13,8 @@ import rimraf from 'rimraf';
 import * as os from 'os';
 import { Connection } from 'typeorm';
 import { connectHelper } from '../../db';
-import { User, UserRepositoryAuth, getUser } from '../../entity/user';
-import { File, FileRepository, FileRepositoryImpl } from '../../entity/file';
+import { User, UserRepositoryAuth, UserActorImpl } from '../../entity/user';
+import { File, FileRepository, FileRepositoryImpl, FileActorImpl } from '../../entity/file';
 
 let restore: () => void;
 let db: Connection;
@@ -23,6 +23,8 @@ const USERNAME = 'test';
 const PASSWORD = 'test';
 const USERNAME_EMPTY = 'test_empty';
 const PASSWORD_EMPTY = 'test_empty';
+const userActor = new UserActorImpl();
+const fileActor = new FileActorImpl();
 
 function getAgent() {
   const app = express();
@@ -35,12 +37,8 @@ function getAgent() {
       files: {},
       entrypoints: []
     },
-    userActor: {
-      getUser,
-      get(user, field) {
-        return user[field];
-      }
-    }
+    userActor,
+    fileActor
   });
 
   const authModule = new AuthModule(passport, {

@@ -5,31 +5,32 @@ import { NotFound } from './errors';
 import * as fs from 'fs';
 import { IAssetManifest } from '../../interfaces';
 
-import { IFile, IFileRepository, IUserActor } from './interfaces';
+import { IFileRepository, IUserActor, IFileActor } from './interfaces';
 
-export interface IOption<TUser> {
+export interface IOption<TUser, TFile> {
   uploadDir: string;
   requireAuth: () => any;
   manifest: IAssetManifest;
   router?: Router;
   userActor: IUserActor<TUser>;
+  fileActor: IFileActor<TFile, TUser>;
 }
 
-export class FilesModule<TUser, TFile extends IFile<TUser>> {
+export class FilesModule<TUser, TFile> {
   private newRep = new Storage(this.opt.uploadDir, this.opt.userActor);
   private router = this.opt.router || Router();
   constructor(
     private rep: IFileRepository<TUser, TFile>,
-    private opt: IOption<TUser>
+    private opt: IOption<TUser, TFile>
   ) {}
 
   init() {
-    const { router, opt, rep, newRep } = this
+    const { router, opt, rep, newRep } = this;
     router.get('/', opt.requireAuth(), async (req: Request, res, next) => {
       try {
         const user: TUser = opt.userActor.getUser(req);
         const files = await rep.findAllByUser(user);
-        res.render('index', { user, files, manifest: opt.manifest });
+        res.render('index', { user, files: files.map(f => opt.fileActor.toJSON(f, opt.fileActor.getUser(f))), manifest: opt.manifest });
       } catch (err) {
         next(err);
       }
@@ -41,7 +42,7 @@ export class FilesModule<TUser, TFile extends IFile<TUser>> {
       async (req: Request, res, next) => {
         try {
           const user: TUser = opt.userActor.getUser(req);
-          const userName = opt.userActor.get(user, 'name');
+          const userName = opt.userActor.getName(user);
           if (userName !== req.params.user) {
             if (req.xhr) {
               return res.status(401).json({ error: 'Unauthorize access' });
@@ -53,7 +54,9 @@ export class FilesModule<TUser, TFile extends IFile<TUser>> {
           if (req.xhr) {
             res.json(files).end();
           } else {
-            res.render('files', { files: files.map(f => rep.toJSON(f)) });
+            res.render('files', {
+              files: files.map(f => opt.fileActor.toJSON(f, opt.fileActor.getUser(f)))
+            });
           }
         } catch (err) {
           return next(err);
@@ -68,17 +71,16 @@ export class FilesModule<TUser, TFile extends IFile<TUser>> {
       async (req, res) => {
         const { size, filename, mimetype } = req.file;
         const user: TUser = opt.userActor.getUser(req);
-        const file = rep.createFile(filename, user);
+        const file = opt.fileActor.create(filename, user);
         await rep.save(file);
 
-        res
-          .json({
-            size,
-            filename,
-            mimetype,
-            url: file.url(),
-            id: file.id
-          });
+        res.json({
+          size,
+          filename,
+          mimetype,
+          url: opt.fileActor.url(file, user),
+          id: opt.fileActor.getId(file)
+        });
       }
     );
 
@@ -90,8 +92,9 @@ export class FilesModule<TUser, TFile extends IFile<TUser>> {
       }
       try {
         const file = await rep.findOneOrFail(fileid);
-        file.user = user;
-        const filePath = file.url(opt.uploadDir);
+        opt.fileActor.setUser(file, user);
+
+        const filePath = opt.fileActor.url(file, user, opt.uploadDir);
         await rep.removeByIdAndUser(fileid, user);
         await new Promise((resolve, reject) =>
           fs.unlink(filePath, err => (err ? reject(err) : resolve()))

@@ -13,7 +13,8 @@ import { createHmac } from 'crypto';
 import { Min, Max } from 'class-validator';
 import { File } from './file';
 import { IUserRepository, InvalidLoginError } from './../../package/auth/data';
-
+import { IUserActor } from '../../package/files/interfaces';
+import { Request } from 'express';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -49,6 +50,18 @@ export class User {
   }
 }
 
+export class UserActorImpl implements IUserActor<User> {
+  getUser(req: Request): User {
+    if (!req.user) {
+      throw new InvalidLoginError('Not authorize access');
+    }
+    return req.user as User;
+  }
+  getName(user: User): string {
+    return user.name;
+  }
+}
+
 @EntityRepository(User)
 export class UserRepository extends Repository<User> {
   async findUser(name: string, password: string) {
@@ -65,7 +78,7 @@ export class UserRepository extends Repository<User> {
 }
 export class UserRepositoryAuth implements IUserRepository<User> {
   create(id?: number): User {
-    const user = new User;
+    const user = new User();
     if (id !== undefined) {
       user.id = id;
     }
@@ -99,9 +112,3 @@ export class UserRepositoryAuth implements IUserRepository<User> {
   }
 }
 
-export function getUser(req: Express.Request): User {
-  if (!req.user) {
-    throw new InvalidLoginError('Not authorize access');
-  }
-  return req.user as User;
-}

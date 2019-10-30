@@ -14,10 +14,10 @@ import { Session } from './entity/session';
 import { IAssetManifest } from '../interfaces';
 import { AuthModule } from '../package/auth';
 import { FilesModule } from '../package/files';
-import { UserRepositoryAuth, User } from './entity/user';
+import { UserRepositoryAuth, User, UserActorImpl } from './entity/user';
 import passport from 'passport';
 import ARGS from './args';
-import { File, FileRepositoryImpl } from './entity/file';
+import { File, FileRepositoryImpl, FileActorImpl } from './entity/file';
 
 export interface IMiddlewareMocks {
   mockSessionOpts?(opts: session.SessionOptions): session.SessionOptions
@@ -84,20 +84,16 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
     repository: new UserRepositoryAuth(db)
   });
   app.use(authModule.init())
+  const userActor = new UserActorImpl()
+  const fileActor = new FileActorImpl();
   const filesModule = new FilesModule<User, File>(
     new FileRepositoryImpl(db),
     {
       uploadDir: ARGS.upload,
       requireAuth: AuthModule.requireAuth,
       manifest,
-      userActor: {
-        getUser(req) {
-          return req.user as User;
-        },
-        get(user, field) {
-          return user[field];
-        }
-      }
+      userActor,
+      fileActor
     }
   )
   app.use(filesModule.init());

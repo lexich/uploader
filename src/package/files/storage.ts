@@ -43,7 +43,7 @@ export class Storage<TUser> {
       storage: multer.diskStorage({
         destination: (req, _, cb) => {
           const user =  act.getUser(req as any);
-          const name = this.act.get(user, 'name');
+          const name = this.act.getName(user);
           const filedir = this.getFileDir(name);
           mkdirp(filedir, err => {
             if (err) {
@@ -54,7 +54,7 @@ export class Storage<TUser> {
         },
         filename: (req, file, cb) => {
           const user = act.getUser(req as any);
-          const name = this.act.get(user, 'name');
+          const name = this.act.getName(user);
           const filedir = this.getFileDir(name);
           fixFileName(file.originalname, filedir).then(
             name => cb(null, name),
