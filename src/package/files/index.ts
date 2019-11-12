@@ -37,6 +37,25 @@ export class FilesModule<TUser, TFile> {
     });
 
     router.get(
+      '/files',
+      opt.requireAuth(),
+      async (req: Request, res, next) => {
+        try {
+          const user: TUser = opt.userActor.getUser(req);
+          const userFiles = await rep.findAllByUser(user);
+          const files = userFiles.map(f => opt.fileActor.toJSON(f, opt.fileActor.getUser(f)));
+          if (req.xhr) {
+            res.json(files).end();
+          } else {
+            res.render('files', { files });
+          }
+        } catch (err) {
+          return next(err);
+        }
+      }
+    );
+
+    router.get(
       '/:user/files',
       opt.requireAuth(),
       async (req: Request, res, next) => {
@@ -50,13 +69,12 @@ export class FilesModule<TUser, TFile> {
               return res.redirect('/');
             }
           }
-          const files = await rep.findAllByUser(user);
+          const userFiles = await rep.findAllByUser(user);
+          const files = userFiles.map(f => opt.fileActor.toJSON(f, opt.fileActor.getUser(f)));
           if (req.xhr) {
             res.json(files).end();
           } else {
-            res.render('files', {
-              files: files.map(f => opt.fileActor.toJSON(f, opt.fileActor.getUser(f)))
-            });
+            res.render('files', { files });
           }
         } catch (err) {
           return next(err);
