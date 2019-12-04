@@ -1,0 +1,11 @@
+/node_modules
+/lib
+/uploads
+.env
+dev.db
+docker-compose.yml
+yarn-error.log
+/.vscode
+/logs
+
+/db

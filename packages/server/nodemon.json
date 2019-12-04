@@ -1,0 +1,9 @@
+{
+    "exec": "ts-node -P ./tsconfig.json src/index.ts",
+    "ext": "ts",
+    "watch": [
+        "src",
+        "../packages/auth",
+        "../packages/files"
+    ]
+}

@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:1.17.3
+    ports:
+      - "80:80"
+    expose:
+      - "80"
+    restart: unless-stopped
+    environment:
+      - NGINX_PORT=80
+      - NGINX_NAME=lexich.tk
+      - NGINX_SERVICE_NAME=upload
+    volumes:
+      - ./nginx.template:/etc/nginx/conf.d/mysite.template
+      - ./uploads:/media:ro
+      - ./nginx_error:/etc/nginx/error_log.log
+    command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
+
+    networks:
+      - app-network
+
+  uploader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lexich/uploader:v1
+    restart: unless-stopped
+    environment:
+      - username=lexich
+      - password=lexich
+      - upload=uploads
+      - secret=mdlkfmdklsmgnjnngeow
+      - logdir=/app/logs"
+    volumes:
+      - "./uploads:/app/uploads"
+      - "./logs:/app/logs"
+      - "./session-store:/app/level-session-store"
+    container_name: uploader
+    hostname: uploader
+    ports:
+      - "3000:3000"
+    expose:
+      - "3000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

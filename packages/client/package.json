@@ -1,0 +1,42 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "main": "index.tsx",
+  "license": "MIT",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "@types/react": "^16.9.5",
+    "@types/react-dom": "^16.9.1",
+    "antd": "^3.26.0",
+    "react": "^16.10.2",
+    "react-dom": "^16.10.2",
+    "react-player": "^1.13.0",
+    "storeon": "^0.9.5"
+  },
+  "devDependencies": {
+    "cookies": "^0.8.0",
+    "http-proxy-middleware": "^0.20.0",
+    "react-scripts": "^3.2.0",
+    "typescript": "^3.6.2"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
