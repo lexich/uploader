@@ -2,55 +2,30 @@ import * as React from 'react';
 import {
   List,
   Skeleton,
-  Avatar,
   Layout,
   Upload,
   Icon,
   Button,
-  Menu
+  Menu,
 } from 'antd';
 import { IFile } from '../interfaces';
-import { Player } from './Player';
+import ContentViewer from './ContentViewer';
+import IconFile from './IconFile';
 import useStoreon from 'storeon/react';
 import { IState, IEvents } from './store';
-
-export function isMedia(file: IFile) {
-  return /\.(mp3|wav|ogg)$/.test(file.url);
-}
-
-export function isImage(item: IFile) {
-  return /\.(png|jpg|jpeg|bmp)$/.test(item.url);
-}
-
-function renderContent(item: IFile) {
-  if (isMedia(item)) {
-    return <Player url={item.url} />;
-  }
-  if (isImage(item)) {
-    return null;
-  }
-}
-
-function renderAvatar(item: IFile) {
-  if (isMedia(item)) {
-    return <Avatar icon="audio" />;
-  }
-  if (isImage(item)) {
-    return <Avatar src={item.url} />;
-  }
-  if (/\.pdf$/.test(item.url)) {
-    return <Avatar icon="file-pdf" />;
-  }
-  return <Avatar icon="file-unknown" />;
-}
+import { isViewable } from './utils';
+import styles from './App.module.css';
 
 export function App() {
   const { dispatch, files } = useStoreon<IState, IEvents>('files');
-
+  const { activeFile } = useStoreon<IState, IEvents>('activeFile');
+  const content = !activeFile ? null : (
+    <ContentViewer file={activeFile} onClose={() => dispatch('active', undefined)} />
+  );
   return (
     <Layout>
       <Layout.Header>
-        <Menu theme="dark" mode="horizontal" style={{ float: "right"}}>
+        <Menu theme="dark" mode="horizontal" style={{ float: 'right' }}>
           <Menu.Item key="1">
             <a href="/logout">Logout</a>
           </Menu.Item>
@@ -84,7 +59,7 @@ export function App() {
             uploading company data or other band files
           </p>
         </Upload.Dragger>
-
+        { content }
         <List
           className=""
           dataSource={files}
@@ -102,18 +77,26 @@ export function App() {
             >
               <Skeleton avatar title={false} active loading={false}>
                 <List.Item.Meta
-                  avatar={renderAvatar(item)}
+                  avatar={[
+                    <IconFile className={styles.Icon} key={`icon-${item.id}`} file={item} />,
+                    <Button
+                      key={`button-${item.id}`}
+                      shape="circle"
+                      icon="eye"
+                      disabled={!isViewable(item)}
+                      onClick={() => dispatch('active', item)}
+                    />
+                  ]}
                   title={
                     <a
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {item.name}
+                      {item.name}&nbsp;&nbsp;&nbsp;<Icon type="select" />
                     </a>
                   }
                 />
-                {renderContent(item)}
               </Skeleton>
             </List.Item>
           )}

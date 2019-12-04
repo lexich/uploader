@@ -1,85 +1,120 @@
 import * as React from 'react';
-import { Progress, Button } from 'antd';
+import { Button, Slider } from 'antd';
 import ReactPlayer, { SourceProps } from 'react-player';
+import { SliderValue } from 'antd/lib/slider';
+import styles from './Player.module.css';
+
 export interface IPlayerProps {
   url: string | string[] | SourceProps[] | MediaStream;
   isPlaying?: boolean;
 }
-export interface IPlayerState {
+
+export interface IProgress {
+  played: number;
+  playedSeconds: number;
+  loaded: number;
+  loadedSeconds: number;
+}
+
+export interface IPlayerState extends IProgress {
   isPlaying: boolean;
-  startLoading: boolean;
   playProgress: number;
   loadProgress: number;
+  volume: number;
+}
+
+function timeFormatter(aTime: number) {
+  const time = Math.round(aTime);
+  const min = Math.round(time / 60);
+  const sec = time % 60;
+  return (min < 10 ? `0${min}` : `${min}`) + ':' + (sec < 10 ? `0${sec}`: `${sec}`);
 }
 
 export class Player extends React.Component<IPlayerProps, IPlayerState> {
   state: IPlayerState = {
     isPlaying: !!this.props.isPlaying,
-    startLoading: false,
+    played: 0,
+    loaded: 0,
+    playedSeconds: 0,
+    loadedSeconds: 0,
     playProgress: 0,
     loadProgress: 0,
+    volume: 0.05
   };
+
   render() {
     const { url } = this.props;
-    const { isPlaying, playProgress, loadProgress, startLoading } = this.state;
+    const { isPlaying,  loadedSeconds, playedSeconds, volume } = this.state;
     const playBtn = !isPlaying ? (
       <Button shape="round" icon="caret-right" onClick={this.onPlay} />
     ) : (
       <Button shape="round" icon="pause" onClick={this.onPause} />
     );
-    const Player = !startLoading ? null : (
-      <ReactPlayer
-          ref={this.setPlayer}
-          onProgress={this.handleProgress}
-          playing={isPlaying}
-          url={url}
-          volume={0.05}
-          width="0"
-          height="0"
-        />
-    );
 
+    const Player = (
+      <ReactPlayer
+        ref={this.setPlayer}
+        onProgress={this.handleProgress}
+        playing={isPlaying}
+        url={url}
+        volume={volume}
+        width="0"
+        height="0"
+      />
+    );
+    const max = this.max();
     return (
-      <div style={{ display: 'flex', width: '100%', padding: '30px' }}>
-        { Player }
-        { playBtn }
+      <div className={styles.Main}>
+        {Player}
+        {playBtn}
         &nbsp;
-        <div ref={this.setProgress} onClick={this.onSeek} style={{ width: '100%', cursor: 'pointer', padding: '4px 10px 0 15px' }}>
-          <Progress
-            percent={loadProgress}
-            successPercent={playProgress}
-            format={this.onFormat}
-          />
-        </div>
+        <Slider
+          onChange={this.onChangePlay}
+          tipFormatter={timeFormatter}
+          value={playedSeconds}
+          min={0}
+          max={max}
+          tooltipVisible={true}
+          marks={{
+            [loadedSeconds]: '',
+            [max]: timeFormatter(max)
+          }}
+          style={{
+            width: '100%',
+            cursor: 'pointer',
+            padding: '4px 10px 0 15px'
+          }}
+        />
       </div>
     );
   }
-  private progress: HTMLDivElement | null = null;
-  setProgress = (progress: HTMLDivElement | null) => this.progress = progress;
-  private player: ReactPlayer | null = null;
-  setPlayer = (player: ReactPlayer | null) => this.player = player;
-  onSeek = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    if (!this.progress || !this.player) {
+
+  private max() {
+    const { loadedSeconds, loaded } = this.state;
+    return loaded ? loadedSeconds / loaded : 0;
+  }
+
+  private onChangePlay = (value: SliderValue) => {
+    const { player } = this;
+    if (!player) {
       return;
     }
-    const { clientX } = e;
-    const { width } = this.progress.getBoundingClientRect();
-    const persent = clientX / width;
-    this.player.seekTo(persent, 'fraction');
-  }
-  onFormat = (_percent?: number, successPercent?: number) =>
-    `${successPercent}%`;
-  onPlay = () => this.setState({ isPlaying: true, startLoading: true });
+    if (Array.isArray(value)) {
+      return;
+    }
+
+    player.seekTo(value, 'seconds');
+  };
+
+  private player: ReactPlayer | null = null;
+  setPlayer = (player: ReactPlayer | null) => (this.player = player);
+  onPlay = () => this.setState({ isPlaying: true });
   onPause = () => this.setState({ isPlaying: false });
-  handleProgress = (state: {
-    played: number;
-    playedSeconds: number;
-    loaded: number;
-    loadedSeconds: number;
-  }) => {
+  handleProgress = (state: IProgress) => {
     this.setState({
+      ...state,
       playProgress: Math.round(state.played * 100),
-      loadProgress: Math.round(state.loaded * 100),
+      loadProgress: Math.round(state.loaded * 100)
     });
   };
 }

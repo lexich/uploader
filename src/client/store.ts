@@ -3,6 +3,7 @@ import { IFile } from '../interfaces';
 
 export interface IState {
   files: IFile[];
+  activeFile?: IFile;
 }
 
 export interface IEvents extends StoreonEvents<IState> {
@@ -10,6 +11,7 @@ export interface IEvents extends StoreonEvents<IState> {
   remove: IFile;
   save: IState;
   load: undefined;
+  active: IFile | undefined;
 }
 
 export function getFiles() {
@@ -20,6 +22,9 @@ const initModule: Module<IState, IEvents> = store => {
   store.on('@init', () => ({
     files: getFiles() || []
   }));
+  store.on('active', (state, activeFile) => {
+    return { ...state, activeFile };
+  })
   store.on('add', (state, data) => {
     return { ...state, files: state.files.concat(data) };
   });

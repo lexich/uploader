@@ -1,0 +1,11 @@
+.Main {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    padding: 20px;
+}
+.Close.Close {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
