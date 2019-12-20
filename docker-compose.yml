@@ -12,6 +12,8 @@ services:
       - NGINX_PORT=80
       - NGINX_NAME=lexich.tk
       - NGINX_SERVICE_NAME=upload
+      - SERVICE_NAME=uploader
+      - SERVICE_PORT=3000
     volumes:
       - ./nginx.template:/etc/nginx/conf.d/mysite.template
       - ./uploads:/media:ro
@@ -25,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: lexich/uploader:v1
+    image: lexich/uploader:v2
     restart: unless-stopped
     environment:
       - username=lexich
@@ -38,11 +40,8 @@ services:
     volumes:
       - "./uploads:/app/uploads"
       - "./logs:/app/logs"
-      - "./session-store:/app/level-session-store"
     container_name: uploader
     hostname: uploader
-    ports:
-      - "3000:3000"
     expose:
       - "3000"
     networks:

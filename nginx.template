@@ -41,6 +41,6 @@ server {
   }
 
   location / {
-    proxy_pass http://uploader:3000/;
+    proxy_pass http://${SERVICE_NAME}:${SERVICE_PORT}/;
   }
 }
