@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "update:version": "lerna version --no-push",
-    "server:compile": "npm run compile --prefix=packages/files && npm run compile --prefix=packages/auth && npm run compile --prefix=packages/server"
+    "compile:server": "npm run compile --prefix=packages/files && npm run compile --prefix=packages/auth && npm run compile --prefix=packages/server"
   },
   "workspaces": [
     "packages/*"
