@@ -3,12 +3,16 @@ import * as fs from 'fs';
 import { IAssetManifest } from './interfaces';
 import winston from 'winston';
 import fetch from 'node-fetch';
+import path from 'path'
+import ARGS from './args';
 
 function getManifest(): Promise<IAssetManifest> {
     if (process.env.NODE_ENV === 'production') {
-        return new Promise((resolve, reject) => {
-            const data = fs.readFileSync('build/asset-manifest.json').toString();
-            return JSON.parse(data);
+        return new Promise((resolve) => {
+            const data = fs.readFileSync(
+                path.join(ARGS.static, 'asset-manifest.json')
+            ).toString();
+            resolve(JSON.parse(data));
         });
 
     } else {

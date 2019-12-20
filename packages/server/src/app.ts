@@ -108,10 +108,7 @@ export async function initApp(manifest: IAssetManifest, app = express()) {
   app.use(filesModule.init());
 
   app.use('/media', express.static(ARGS.upload));
-  app.use(
-    '/static',
-    express.static(path.resolve(__dirname, '..', '..', 'build', 'static'))
-  );
+  app.use(express.static(ARGS.static));
   app.use(
     expressWinston.errorLogger({
       transports: [

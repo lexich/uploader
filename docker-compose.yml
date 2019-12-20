@@ -33,6 +33,8 @@ services:
       - upload=uploads
       - secret=mdlkfmdklsmgnjnngeow
       - logdir=/app/logs"
+      - NODE_ENV=production
+      - PORT=3000
     volumes:
       - "./uploads:/app/uploads"
       - "./logs:/app/logs"

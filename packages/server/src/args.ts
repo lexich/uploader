@@ -24,7 +24,8 @@ const ARGS = {
     isProduction: process.env.NODE_ENV === 'production',
     logdir: process.env.logfilename || 'logs',
     logfilename: process.env.logfilename || 'service.log',
-    logerrorfilename: process.env.logerrorfilename || 'error.log'
+    logerrorfilename: process.env.logerrorfilename || 'error.log',
+    static: process.env.static || path.join(__dirname, '..', '..', 'client', 'build')
 };
 
 export function mock(fn: (args: typeof ARGS) => void) {
